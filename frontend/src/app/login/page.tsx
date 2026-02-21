@@ -2,17 +2,26 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Already logged in → go straight to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace(searchParams.get("redirect") || "/dashboard");
+    }
+  }, [authLoading, user]);
+
+  if (authLoading || user) return null;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

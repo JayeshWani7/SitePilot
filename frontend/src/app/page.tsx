@@ -1,298 +1,479 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useState } from "react";
 
-type Project = {
-  id: string;
-  tenant_id: string;
-  name: string;
-  created_at: string;
-};
+const FEATURES = [
+  {
+    icon: "🤖",
+    title: "Autonomous Operations",
+    desc: "SitePilot runs your website like a business — making decisions, optimising content, and responding to traffic patterns without manual intervention.",
+  },
+  {
+    icon: "📊",
+    title: "Real-Time Analytics",
+    desc: "Live dashboards covering SEO readiness, conversion health, traffic growth, and brand consistency — all in one place.",
+  },
+  {
+    icon: "🔐",
+    title: "Multi-Tenant Security",
+    desc: "Enterprise-grade row-level security with full tenant isolation. Every team's data stays separate with zero cross-tenant leakage.",
+  },
+  {
+    icon: "⚡",
+    title: "AI Governance",
+    desc: "Every autonomous action is logged, auditable, and explainable. You stay in control while the AI does the heavy lifting.",
+  },
+  {
+    icon: "🎯",
+    title: "Lifecycle Intelligence",
+    desc: "Track your site from onboarding to monetisation with eight intelligent stages that adapt to your growth trajectory.",
+  },
+  {
+    icon: "🚀",
+    title: "Instant Scaling",
+    desc: "From a solo project to an agency managing hundreds of tenants — SitePilot scales horizontally with no configuration required.",
+  },
+];
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+const METRICS = [
+  { value: "10×", label: "Faster Launch" },
+  { value: "98%", label: "Uptime SLA" },
+  { value: "40%", label: "More Conversions" },
+  { value: "5 min", label: "Setup Time" },
+];
 
-export default function DashboardPage() {
-  const [tenantPreset, setTenantPreset] = useState("11111111-1111-1111-1111-111111111111");
-  const [tenantId, setTenantId] = useState("11111111-1111-1111-1111-111111111111");
-  const [projectName, setProjectName] = useState("");
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [status, setStatus] = useState("Ready.");
-  const [loading, setLoading] = useState(false);
-  const [showTips, setShowTips] = useState(true);
+const TESTIMONIALS = [
+  {
+    quote: "SitePilot cut our time-to-launch from three weeks to two days. The AI governance feature alone is worth the switch.",
+    name: "Priya Mehta",
+    role: "CTO, LaunchBridge",
+    avatar: "P",
+    color: "#6366f1",
+  },
+  {
+    quote: "Managing 60 client sites used to be chaos. Now everything is isolated, monitored, and self-healing. Incredible product.",
+    name: "Marcus Cole",
+    role: "Agency Owner, WebFront",
+    avatar: "M",
+    color: "#22d3ee",
+  },
+  {
+    quote: "The analytics and lifecycle tracking gave us visibility we never had before. We hit monetisation stage in under a month.",
+    name: "Sana Qureshi",
+    role: "Head of Growth, Novu",
+    avatar: "S",
+    color: "#f4b942",
+  },
+];
 
-  const lifecycleState = useMemo(() => {
-    if (projects.length === 0) return 2;
-    if (projects.length === 1) return 3;
-    if (projects.length === 2) return 4;
-    return 5;
-  }, [projects.length]);
+export default function HomePage() {
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactStatus, setContactStatus] = useState<"idle" | "sent">("idle");
 
-  const stages = [
-    "Onboarding",
-    "Draft",
-    "Brand Setup",
-    "Content Ready",
-    "Domain Live",
-    "Traffic Growth",
-    "Optimization",
-    "Monetization",
-  ];
-
-  const headers = {
-    "x-tenant-id": tenantId,
-    "Content-Type": "application/json",
+  const handleContact = (e: FormEvent) => {
+    e.preventDefault();
+    // Simulate send
+    setContactStatus("sent");
+    setContactName("");
+    setContactEmail("");
+    setContactMessage("");
+    setTimeout(() => setContactStatus("idle"), 4000);
   };
 
-  async function fetchProjects() {
-    if (!tenantId) {
-      setStatus("Tenant ID is required.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setStatus("Fetching projects...");
-      const response = await fetch(`${API_BASE_URL}/projects`, { headers });
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}. Is the backend running on ${API_BASE_URL}?`);
-      }
-      
-      const payload = await response.json();
-      setProjects(payload);
-      setStatus(`✓ Loaded ${payload.length} project(s) for tenant ${tenantId}.`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Fetch failed.";
-      setStatus(`✗ ${message}`);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function createProject(event: FormEvent) {
-    event.preventDefault();
-    if (!projectName.trim()) {
-      setStatus("Project name is required.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/projects`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ name: projectName.trim() }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Failed to create project.");
-      setProjectName("");
-      setStatus(`✓ Project "${payload.name}" created.`);
-      await fetchProjects();
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Create failed.");
-      setLoading(false);
-    }
-  }
-
-  async function healthCheck() {
-    try {
-      setStatus("Checking API health...");
-      const response = await fetch(`${API_BASE_URL}/health`);
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}. Is the backend running on ${API_BASE_URL}?`);
-      }
-      
-      const payload = await response.json();
-      if (!payload.ok) throw new Error("API returned unhealthy status.");
-      setStatus("✓ API is healthy and connected.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Health check failed.";
-      setStatus(`✗ ${message}`);
-    }
-  }
-
   return (
-    <div className="sp-grid">
-      <section className="sp-card sp-col-12 sp-hero">
-        <div>
-          <span className="sp-eyebrow">SitePilot Workspace</span>
-          <h2>Build, launch, and grow your website with AI-guided momentum.</h2>
-          <p className="sp-muted">
-            Manage tenants, create projects, and track lifecycle progress in one place with enterprise-ready
-            isolation and explainable AI workflows.
-          </p>
-          <div className="sp-actions-row">
-            <button className="sp-btn sp-primary" onClick={fetchProjects} disabled={loading}>
-              Sync Tenant Data
-            </button>
-            <button className="sp-btn sp-ghost" onClick={healthCheck}>
-              Check API Status
-            </button>
-          </div>
+    <div style={{ overflowX: "hidden" }}>
+
+      {/* ── HERO ─────────────────────────────────────────────────────── */}
+      <section
+        style={{
+          minHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          padding: "80px 24px 60px",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* Background glow orbs */}
+        <div style={{
+          position: "absolute", top: "10%", left: "15%",
+          width: 500, height: 500, borderRadius: "50%",
+          background: "radial-gradient(circle, color-mix(in srgb, var(--primary) 18%, transparent), transparent 70%)",
+          filter: "blur(60px)", pointerEvents: "none",
+        }} />
+        <div style={{
+          position: "absolute", bottom: "5%", right: "10%",
+          width: 400, height: 400, borderRadius: "50%",
+          background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%)",
+          filter: "blur(60px)", pointerEvents: "none",
+        }} />
+
+        {/* Badge */}
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          padding: "6px 16px", borderRadius: 999,
+          border: "1px solid color-mix(in srgb, var(--primary) 50%, var(--border))",
+          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+          fontSize: "0.8rem", color: "var(--primary)", fontWeight: 600,
+          marginBottom: 28, letterSpacing: "0.04em",
+        }}>
+          <span>✦</span> Autonomous Business Operating System
         </div>
-        <div className="sp-hero-stats">
-          <article>
-            <strong>{projects.length}</strong>
-            <span>Projects</span>
-          </article>
-          <article>
-            <strong>{stages.length}</strong>
-            <span>Lifecycle Stages</span>
-          </article>
-          <article>
-            <strong>{tenantId ? "Active" : "Missing"}</strong>
-            <span>Tenant Context</span>
-          </article>
+
+        <h1 style={{
+          fontSize: "clamp(2.4rem, 6vw, 4.5rem)",
+          fontWeight: 800,
+          lineHeight: 1.1,
+          margin: "0 0 24px",
+          maxWidth: 780,
+          background: "linear-gradient(135deg, var(--text) 0%, color-mix(in srgb, var(--primary) 80%, var(--text)) 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+        }}>
+          Your Website,<br />Running on Autopilot
+        </h1>
+
+        <p style={{
+          fontSize: "clamp(1rem, 2vw, 1.2rem)",
+          color: "var(--text-muted)",
+          maxWidth: 620,
+          lineHeight: 1.7,
+          margin: "0 0 40px",
+        }}>
+          SitePilot intelligently manages your web presence — handling SEO, content, analytics,
+          and operations autonomously so your team can focus on what matters.
+        </p>
+
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
+          <Link
+            href="/signup"
+            className="sp-btn sp-primary"
+            style={{ padding: "14px 32px", fontSize: "1rem", fontWeight: 700, borderRadius: 999 }}
+          >
+            Get Started Free →
+          </Link>
+          <Link
+            href="/dashboard"
+            className="sp-btn"
+            style={{
+              padding: "14px 32px", fontSize: "1rem", borderRadius: 999,
+              border: "1px solid var(--border)",
+              background: "color-mix(in srgb, var(--surface) 60%, transparent)",
+            }}
+          >
+            View Dashboard
+          </Link>
+        </div>
+
+        {/* Hero stat bar */}
+        <div style={{
+          display: "flex", gap: 40, marginTop: 64, flexWrap: "wrap",
+          justifyContent: "center",
+        }}>
+          {METRICS.map((m) => (
+            <div key={m.label} style={{ textAlign: "center" }}>
+              <p style={{
+                margin: 0, fontSize: "2rem", fontWeight: 800,
+                background: "linear-gradient(135deg, var(--primary), var(--accent))",
+                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+              }}>{m.value}</p>
+              <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                {m.label}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
-      <section className="sp-card sp-col-6">
-        <h2>Tenant Context</h2>
-        <p className="sp-muted">Switch tenant and verify strict RLS behavior with project visibility.</p>
+      {/* ── WHY SITEPILOT ────────────────────────────────────────────── */}
+      <section style={{ padding: "80px 24px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <span style={{
+            display: "inline-block", padding: "4px 14px", borderRadius: 999,
+            background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--accent) 40%, var(--border))",
+            color: "var(--accent)", fontSize: "0.78rem", fontWeight: 600,
+            letterSpacing: "0.05em", marginBottom: 16, textTransform: "uppercase",
+          }}>Why SitePilot</span>
+          <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 800, margin: "0 0 16px" }}>
+            Everything your site needs,<br />handled automatically
+          </h2>
+          <p style={{ color: "var(--text-muted)", maxWidth: 520, margin: "0 auto", fontSize: "1rem", lineHeight: 1.7 }}>
+            Stop juggling tools. SitePilot unifies operations, intelligence, and governance in a single autonomous platform.
+          </p>
+        </div>
 
-        <div className="sp-field-grid">
-          <label>
-            <span>Tenant</span>
-            <select
-              value={tenantPreset}
-              onChange={(e) => {
-                const value = e.target.value;
-                setTenantPreset(value);
-                if (value !== "custom") setTenantId(value);
-                if (value === "custom") setTenantId("");
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: 20,
+        }}>
+          {FEATURES.map((f, i) => (
+            <div
+              key={f.title}
+              className="sp-card"
+              style={{
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                cursor: "default",
+                borderTop: `2px solid ${i % 2 === 0 ? "var(--primary)" : "var(--accent)"}`,
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
+                (e.currentTarget as HTMLElement).style.boxShadow = "0 16px 40px rgba(0,0,0,0.25)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                (e.currentTarget as HTMLElement).style.boxShadow = "";
               }}
             >
-              <option value="11111111-1111-1111-1111-111111111111">Alpha Studio</option>
-              <option value="22222222-2222-2222-2222-222222222222">Beta Ventures</option>
-              <option value="custom">Custom</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Tenant ID</span>
-            <input value={tenantId} onChange={(e) => setTenantId(e.target.value)} />
-          </label>
-        </div>
-
-        <div className="sp-actions-row">
-          <button className="sp-btn sp-secondary" onClick={fetchProjects} disabled={loading}>
-            Refresh Projects
-          </button>
-          <button className="sp-btn sp-ghost" onClick={healthCheck}>
-            Health Check
-          </button>
-        </div>
-
-        <div className="sp-status">{status}</div>
-      </section>
-
-      <section className="sp-card sp-col-6">
-        <h2>Create Project</h2>
-        <p className="sp-muted">Create project rows under current tenant context.</p>
-        <form onSubmit={createProject} className="sp-form">
-          <label>
-            <span>Project Name</span>
-            <input
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              placeholder="e.g. AI Landing Revamp"
-            />
-          </label>
-          <div className="sp-form-actions">
-            <button className="sp-btn sp-primary" type="submit" disabled={loading}>
-              Create Project
-            </button>
-            <button
-              className="sp-btn sp-ghost sp-btn-sm"
-              type="button"
-              onClick={() => setProjectName("")}
-              disabled={loading || !projectName.trim()}
-            >
-              Clear
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section className="sp-card sp-col-12">
-        <div className="sp-panel-head">
-          <h2>Assistant Guidance</h2>
-          <button className="sp-btn sp-ghost" onClick={() => setShowTips((prev) => !prev)}>
-            {showTips ? "Hide Tips" : "Show Tips"}
-          </button>
-        </div>
-        {showTips ? (
-          <div className="sp-kpi-grid">
-            <article className="sp-kpi">
-              <h3>Next Best Action</h3>
-              <p>After project creation, connect your domain to unlock the Domain Live stage.</p>
-            </article>
-            <article className="sp-kpi">
-              <h3>Conversion Tip</h3>
-              <p>Keep hero CTA and pricing CTA message consistent to reduce user drop-off.</p>
-            </article>
-            <article className="sp-kpi">
-              <h3>Operational Tip</h3>
-              <p>Use tenant presets while demoing to prove isolation in under 20 seconds.</p>
-            </article>
-          </div>
-        ) : (
-          <p className="sp-muted">Tips are hidden. Toggle them back on for guided actions.</p>
-        )}
-      </section>
-
-      <section className="sp-card sp-col-12">
-        <div className="sp-panel-head">
-          <h2>Projects</h2>
-          <span className="sp-pill">{projects.length} item(s)</span>
-        </div>
-
-        <div className="sp-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Tenant ID</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projects.length === 0 ? (
-                <tr>
-                  <td colSpan={3}>No projects yet for this tenant.</td>
-                </tr>
-              ) : (
-                projects.map((project) => (
-                  <tr key={project.id}>
-                    <td>{project.name}</td>
-                    <td>{project.tenant_id}</td>
-                    <td>{new Date(project.created_at).toLocaleString()}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="sp-card sp-col-12">
-        <div className="sp-panel-head">
-          <h2>Lifecycle Preview</h2>
-          <span className="sp-pill">Phase 3 Teaser</span>
-        </div>
-
-        <ol className="sp-lifecycle">
-          {stages.map((stage, index) => (
-            <li
-              key={stage}
-              className={index < lifecycleState ? "complete" : index === lifecycleState ? "active" : ""}
-            >
-              {stage}
-            </li>
+              <div style={{
+                fontSize: "2rem", marginBottom: 14,
+                width: 52, height: 52, borderRadius: 14,
+                background: i % 2 === 0
+                  ? "color-mix(in srgb, var(--primary) 15%, transparent)"
+                  : "color-mix(in srgb, var(--accent) 15%, transparent)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {f.icon}
+              </div>
+              <h3 style={{ margin: "0 0 10px", fontSize: "1.05rem", fontWeight: 700 }}>{f.title}</h3>
+              <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: 1.65 }}>{f.desc}</p>
+            </div>
           ))}
-        </ol>
+        </div>
       </section>
+
+      {/* ── SOCIAL PROOF / TESTIMONIALS ──────────────────────────────── */}
+      <section style={{
+        padding: "80px 24px",
+        background: "color-mix(in srgb, var(--surface) 60%, transparent)",
+        borderTop: "1px solid var(--border)",
+        borderBottom: "1px solid var(--border)",
+      }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <h2 style={{ fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)", fontWeight: 800, margin: "0 0 12px" }}>
+              Trusted by builders worldwide
+            </h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>
+              Teams from startups to agencies ship smarter with SitePilot.
+            </p>
+          </div>
+
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 20,
+          }}>
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className="sp-card" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <p style={{
+                  margin: 0, fontSize: "0.95rem", lineHeight: 1.7,
+                  color: "var(--text)", fontStyle: "italic",
+                }}>
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "auto" }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                    background: `linear-gradient(135deg, ${t.color}, var(--primary))`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontWeight: 800, fontSize: "1rem", color: "#fff",
+                  }}>
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: "0.9rem" }}>{t.name}</p>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ─────────────────────────────────────────────── */}
+      <section style={{ padding: "80px 24px", maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+        <span style={{
+          display: "inline-block", padding: "4px 14px", borderRadius: 999,
+          background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--primary) 40%, var(--border))",
+          color: "var(--primary)", fontSize: "0.78rem", fontWeight: 600,
+          letterSpacing: "0.05em", marginBottom: 16, textTransform: "uppercase",
+        }}>How it works</span>
+        <h2 style={{ fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)", fontWeight: 800, margin: "0 0 56px" }}>
+          Up and running in minutes
+        </h2>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 0,
+          position: "relative",
+        }}>
+          {[
+            { step: "01", title: "Sign up", desc: "Create your account and set up your organisation in under 5 minutes." },
+            { step: "02", title: "Connect", desc: "Add your domain, invite team members, and configure your subscription plan." },
+            { step: "03", title: "Launch", desc: "SitePilot takes over — monitoring, optimising, and reporting autonomously." },
+            { step: "04", title: "Scale", desc: "Add tenants, track lifecycle stages, and grow without the operational overhead." },
+          ].map((item, i) => (
+            <div key={item.step} style={{
+              padding: "28px 24px",
+              borderLeft: i > 0 ? "1px solid var(--border)" : "none",
+              position: "relative",
+            }}>
+              <p style={{
+                margin: "0 0 12px",
+                fontSize: "2.5rem", fontWeight: 800, lineHeight: 1,
+                background: "linear-gradient(135deg, var(--primary), var(--accent))",
+                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+                opacity: 0.7,
+              }}>{item.step}</p>
+              <h3 style={{ margin: "0 0 8px", fontWeight: 700 }}>{item.title}</h3>
+              <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.88rem", lineHeight: 1.65 }}>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CONTACT ──────────────────────────────────────────────────── */}
+      <section
+        id="contact"
+        style={{
+          padding: "80px 24px",
+          background: "color-mix(in srgb, var(--surface) 60%, transparent)",
+          borderTop: "1px solid var(--border)",
+        }}
+      >
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 40 }}>
+            <span style={{
+              display: "inline-block", padding: "4px 14px", borderRadius: 999,
+              background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--accent) 40%, var(--border))",
+              color: "var(--accent)", fontSize: "0.78rem", fontWeight: 600,
+              letterSpacing: "0.05em", marginBottom: 16, textTransform: "uppercase",
+            }}>Contact Us</span>
+            <h2 style={{ fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)", fontWeight: 800, margin: "0 0 12px" }}>
+              Let&apos;s build something together
+            </h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", lineHeight: 1.7 }}>
+              Have questions, partnership ideas, or want a custom demo? Drop us a message and we&apos;ll get back within 24 hours.
+            </p>
+          </div>
+
+          <div className="sp-card">
+            {contactStatus === "sent" ? (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <div style={{ fontSize: "3rem", marginBottom: 16 }}>✅</div>
+                <h3 style={{ margin: "0 0 8px" }}>Message sent!</h3>
+                <p style={{ color: "var(--text-muted)", margin: 0 }}>
+                  We&apos;ll get back to you within 24 hours.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleContact} className="sp-form">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <label>
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                      Your name
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Jane Doe"
+                      required
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                      Email address
+                    </span>
+                    <input
+                      type="email"
+                      placeholder="you@company.com"
+                      required
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                    />
+                  </label>
+                </div>
+                <label>
+                  <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                    Message
+                  </span>
+                  <textarea
+                    placeholder="Tell us what you're building…"
+                    required
+                    rows={5}
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
+                    style={{
+                      width: "100%", resize: "vertical", minHeight: 120,
+                      padding: "10px 14px", borderRadius: 10,
+                      border: "1px solid var(--border)",
+                      background: "var(--bg-elevated)",
+                      color: "var(--text)", fontSize: "0.95rem",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="sp-btn sp-primary"
+                  style={{ width: "100%", padding: "13px", fontSize: "1rem", fontWeight: 700, borderRadius: 999, marginTop: 4 }}
+                >
+                  Send Message →
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA BANNER ───────────────────────────────────────────────── */}
+      <section style={{
+        padding: "80px 24px",
+        textAlign: "center",
+        background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 12%, transparent), color-mix(in srgb, var(--accent) 8%, transparent))",
+        borderTop: "1px solid color-mix(in srgb, var(--primary) 30%, var(--border))",
+      }}>
+        <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 800, margin: "0 0 16px" }}>
+          Ready to put your site on autopilot?
+        </h2>
+        <p style={{ color: "var(--text-muted)", maxWidth: 480, margin: "0 auto 36px", fontSize: "1rem", lineHeight: 1.7 }}>
+          Join thousands of builders who ship faster, grow smarter, and sleep better with SitePilot.
+        </p>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link
+            href="/signup"
+            className="sp-btn sp-primary"
+            style={{ padding: "14px 36px", fontSize: "1rem", fontWeight: 700, borderRadius: 999 }}
+          >
+            Start for Free
+          </Link>
+          <a
+            href="#contact"
+            className="sp-btn"
+            style={{
+              padding: "14px 36px", fontSize: "1rem", borderRadius: 999,
+              border: "1px solid var(--border)",
+              background: "color-mix(in srgb, var(--surface) 60%, transparent)",
+            }}
+          >
+            Talk to us
+          </a>
+        </div>
+      </section>
+
     </div>
   );
 }

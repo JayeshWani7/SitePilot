@@ -15,7 +15,7 @@ const THEMES: Theme[] = [
 ];
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/projects", label: "Projects" },
   { href: "/lifecycle", label: "Lifecycle" },
   { href: "/analytics", label: "Analytics" },

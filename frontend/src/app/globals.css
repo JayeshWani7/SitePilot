@@ -152,6 +152,7 @@ body {
 }
 
 .sp-grid {
+  padding: 0 40px;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 16px;

@@ -6,7 +6,12 @@ import { usePathname } from "next/navigation";
 
 type Theme = "dark-graphite" | "dark-indigo" | "dark-emerald" | "light-minimal";
 
-const THEMES: Theme[] = ["dark-graphite", "dark-indigo", "dark-emerald", "light-minimal"];
+const THEMES: Theme[] = [
+  "dark-graphite",
+  "dark-indigo",
+  "dark-emerald",
+  "light-minimal",
+];
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
@@ -22,7 +27,8 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("sitepilot.theme") as Theme | null;
-    const initial = savedTheme && THEMES.includes(savedTheme) ? savedTheme : "dark-graphite";
+    const initial =
+      savedTheme && THEMES.includes(savedTheme) ? savedTheme : "dark-graphite";
     setTheme(initial);
     document.documentElement.setAttribute("data-theme", initial);
   }, []);
@@ -59,15 +65,15 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           </nav>
 
           <label className="sp-theme-picker">
-            <span>Theme</span>
-            <select 
-              value={theme} 
+            {/* <span>Theme</span> */}
+            <select
+              value={theme}
               onChange={(e) => onThemeChange(e.target.value)}
               suppressHydrationWarning
             >
-              <option value="dark-graphite">Dark Graphite</option>
               <option value="dark-indigo">Dark Indigo</option>
               <option value="dark-emerald">Dark Emerald</option>
+              <option value="dark-graphite">Dark Graphite</option>
               <option value="light-minimal">Light Minimal</option>
             </select>
           </label>

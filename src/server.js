@@ -4,6 +4,9 @@ dotenv.config();
 const express = require('express');
 const path = require('path');
 const { withTenantClient } = require('./db');
+const authRoutes = require('./routes');
+const usageRoutes = require('./usage-routes');
+const { authenticate, withTenantContext, requirePermission } = require('./middleware');
 
 const app = express();
 app.use(express.json());
@@ -12,7 +15,7 @@ app.use(express.json());
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, x-tenant-id');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, x-tenant-id, Authorization');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
@@ -21,22 +24,18 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-function tenantContext(req, res, next) {
-  const tenantId = req.header('x-tenant-id');
-  if (!tenantId) {
-    return res.status(400).json({
-      error: 'Missing x-tenant-id header',
-    });
-  }
-  req.tenantId = tenantId;
-  next();
-}
+// Auth routes (no authentication required)
+app.use('/auth', authRoutes);
+
+// Usage routes (authentication required)
+app.use('/usage', usageRoutes);
 
 app.get('/health', async (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/projects', tenantContext, async (req, res) => {
+// Protected routes - require authentication and tenant access
+app.post('/projects', authenticate, withTenantContext, requirePermission('create_project'), async (req, res) => {
   const { name } = req.body;
   if (!name) {
     return res.status(400).json({ error: 'name is required' });
@@ -57,7 +56,7 @@ app.post('/projects', tenantContext, async (req, res) => {
   }
 });
 
-app.get('/projects', tenantContext, async (req, res) => {
+app.get('/projects', authenticate, withTenantContext, async (req, res) => {
   try {
     const projects = await withTenantClient(req.tenantId, async (client) => {
       const result = await client.query(

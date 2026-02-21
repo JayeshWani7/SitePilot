@@ -12,7 +12,8 @@
     "start:web": "npm --prefix frontend run start:3001",
     "dev:all": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "check:db": "node src/check-db.js",
-    "setup:db": "node src/setup-db.js"
+    "setup:db": "node src/setup-db.js",
+    "dev:builder": "npm --prefix builder run dev"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

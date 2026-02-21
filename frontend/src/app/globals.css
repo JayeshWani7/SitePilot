@@ -77,16 +77,20 @@ body {
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 24px;
+  padding: 0;
+  /* padding removed — header must be edge-to-edge */
 }
+
 
 .sp-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
+  width: 100%;
+  margin-bottom: 0;
 }
+
 
 .sp-brand-wrap {
   display: flex;
@@ -466,6 +470,7 @@ thead th {
 }
 
 @media (max-width: 900px) {
+
   .sp-col-6,
   .sp-col-12 {
     grid-column: span 12;
@@ -497,4 +502,211 @@ thead th {
   .sp-lifecycle {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WEBSITE BUILDER — integrated at /builder
+   ═══════════════════════════════════════════════════════════════ */
+
+.builder-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans, 'Inter', 'Segoe UI', sans-serif);
+}
+
+.builder-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  height: 52px;
+  min-height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.builder-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.builder-sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.builder-canvas-wrap {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: #e2e4ea;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+}
+
+.canvas-iframe {
+  border: none;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.18);
+}
+
+.builder-right {
+  width: 240px;
+  min-width: 240px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Block items ───────────────────────────────────── */
+.block-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  cursor: grab;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-elevated, var(--bg));
+  transition: all 0.15s ease;
+  user-select: none;
+  text-align: center;
+}
+
+.block-item:hover {
+  border-color: var(--primary);
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-elevated, var(--bg)));
+  transform: translateY(-1px);
+}
+
+.block-icon {
+  font-size: 1.4rem;
+}
+
+/* ── Layer items ───────────────────────────────────── */
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: 6px;
+  margin: 1px 6px;
+  transition: background 0.1s;
+}
+
+.layer-item:hover {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--text);
+}
+
+.layer-item.selected {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--text);
+}
+
+/* ── Style panel controls ──────────────────────────── */
+.style-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  min-height: 36px;
+}
+
+.style-label {
+  width: 76px;
+  min-width: 76px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.style-row input,
+.style-row select,
+.style-row textarea {
+  flex: 1;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated, var(--bg));
+  color: var(--text);
+  outline: none;
+  width: 100%;
+}
+
+.style-row input:focus,
+.style-row select:focus {
+  border-color: var(--primary);
+}
+
+/* ── Template grid ─────────────────────────────────── */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.template-card {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--surface);
+}
+
+.template-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.template-thumb {
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+}
+
+.template-info {
+  padding: 16px;
+}
+
+.template-info h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.template-info p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
 }

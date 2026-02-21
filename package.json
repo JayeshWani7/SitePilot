@@ -1,0 +1,26 @@
+{
+  "name": "sitepilot-phase1",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Phase 1 backbone: multi-tenant pool model with Postgres RLS",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "dev:api": "node --watch src/server.js",
+    "dev:web": "npm --prefix frontend run dev:3001",
+    "start:web": "npm --prefix frontend run start:3001",
+    "dev:all": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "check:db": "node src/check-db.js",
+    "setup:db": "node src/setup-db.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "postgres": "^3.4.8"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

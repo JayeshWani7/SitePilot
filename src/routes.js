@@ -182,7 +182,7 @@ router.get('/me', authenticate, async (req, res) => {
  * GET /tenants/:tenantId/members
  * Get tenant members with their roles
  */
-router.get('/tenants/:tenantId/members', authenticate, withTenantContext, requireRole(['owner', 'administrator']), async (req, res) => {
+router.get('/tenants/:tenantId/members', authenticate, withTenantContext, requireRole(['owner', 'administrator', 'editor', 'developer', 'viewer']), async (req, res) => {
   try {
     const { rows: members } = await pool.query(
       `SELECT tm.id, tm.user_id, u.email, u.first_name, u.last_name, 

@@ -70,7 +70,6 @@ export default function UsageDashboard() {
         "x-tenant-id": currentTenant!.id,
       };
 
-      // Fetch usage data
       const usageRes = await fetch(
         `${API_BASE_URL}/usage/tenants/${currentTenant!.id}/usage/current`,
         { headers }
@@ -82,16 +81,11 @@ export default function UsageDashboard() {
       setLimits(usageData.limits);
       setAlerts(usageData.alerts || []);
 
-      // Fetch suggestions
       const suggestionsRes = await fetch(
         `${API_BASE_URL}/usage/tenants/${currentTenant!.id}/usage-suggestions`,
         { headers }
       );
-
-      if (suggestionsRes.ok) {
-        const suggestionsData = await suggestionsRes.json();
-        setSuggestions(suggestionsData);
-      }
+      if (suggestionsRes.ok) setSuggestions(await suggestionsRes.json());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load usage data");
     } finally {
@@ -99,271 +93,205 @@ export default function UsageDashboard() {
     }
   };
 
-  const getUsagePercentage = (current: number, limit: number) => {
-    return limit > 0 ? Math.round((current / limit) * 100) : 0;
-  };
+  const pct = (current: number, limit: number) =>
+    limit > 0 ? Math.round((current / limit) * 100) : 0;
 
-  const getPercentageColor = (percentage: number) => {
-    if (percentage >= 90) return "bg-red-600";
-    if (percentage >= 70) return "bg-yellow-500";
-    return "bg-green-500";
+  const progressColor = (p: number) => {
+    if (p >= 90) return "var(--danger)";
+    if (p >= 70) return "#f4b942";
+    return "var(--accent)";
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-600">Loading usage data...</p>
+      <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>
+        Loading usage data...
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-md bg-red-50 p-4">
-        <p className="text-sm text-red-700">{error}</p>
+      <div
+        className="sp-card"
+        style={{
+          borderColor: "var(--danger)",
+          background: "color-mix(in srgb, var(--danger) 10%, transparent)",
+        }}
+      >
+        <p style={{ color: "var(--danger)", margin: 0 }}>{error}</p>
       </div>
     );
   }
 
   if (!usage || !limits) {
     return (
-      <div className="rounded-md bg-yellow-50 p-4">
-        <p className="text-sm text-yellow-700">No usage data available yet.</p>
+      <div className="sp-card" style={{ textAlign: "center", padding: 40 }}>
+        <p style={{ color: "var(--text-muted)", margin: 0 }}>No usage data available yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Alerts Section */}
-      {alerts.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-gray-900">Active Alerts</h2>
-          <div className="grid gap-4">
-            {alerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="rounded-lg border border-red-200 bg-red-50 p-4"
-              >
-                <div className="flex items-start justify-between">
+    <div style={{ display: "grid", gap: 24 }}>
+      {/* Active Alerts */}
+      {alerts.filter((a) => !a.is_resolved).length > 0 && (
+        <div>
+          <h3 style={{ marginBottom: 12 }}>⚠ Active Alerts</h3>
+          <div style={{ display: "grid", gap: 10 }}>
+            {alerts
+              .filter((a) => !a.is_resolved)
+              .map((alert) => (
+                <div
+                  key={alert.id}
+                  className="sp-card"
+                  style={{
+                    borderColor: "var(--danger)",
+                    background: "color-mix(in srgb, var(--danger) 10%, transparent)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
                   <div>
-                    <h3 className="font-semibold text-red-900">
-                      {alert.alert_type}
-                    </h3>
-                    <p className="mt-1 text-sm text-red-700">
-                      {alert.metric_name}: {alert.current_value} of{" "}
-                      {alert.limit_value} ({Math.round(alert.percentage)}%)
+                    <span style={{ fontWeight: 600, color: "var(--danger)" }}>
+                      {alert.alert_type.replace(/_/g, " ").toUpperCase()}
+                    </span>
+                    <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: "0.88rem" }}>
+                      {alert.metric_name}: {alert.current_value} / {alert.limit_value}
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded">
+                  <span
+                    className="sp-pill"
+                    style={{ borderColor: "var(--danger)", color: "var(--danger)" }}
+                  >
                     {Math.round(alert.percentage)}%
                   </span>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}
 
-      {/* Suggestions Section */}
+      {/* Suggestions */}
       {suggestions.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Optimization Suggestions
-          </h2>
-          <div className="grid gap-4">
-            {suggestions.map((suggestion, idx) => (
-              <div
-                key={idx}
-                className={`rounded-lg border p-4 ${
-                  suggestion.severity === "high"
-                    ? "border-orange-200 bg-orange-50"
-                    : suggestion.severity === "medium"
-                    ? "border-yellow-200 bg-yellow-50"
-                    : "border-blue-200 bg-blue-50"
-                }`}
-              >
-                <div className="flex items-start justify-between">
+        <div>
+          <h3 style={{ marginBottom: 12 }}>💡 Suggestions</h3>
+          <div style={{ display: "grid", gap: 10 }}>
+            {suggestions.map((s, i) => {
+              const color =
+                s.severity === "high"
+                  ? "var(--danger)"
+                  : s.severity === "medium"
+                    ? "#f4b942"
+                    : "var(--primary)";
+              return (
+                <div
+                  key={i}
+                  className="sp-card"
+                  style={{
+                    borderColor: `color-mix(in srgb, ${color} 50%, var(--border))`,
+                    background: `color-mix(in srgb, ${color} 8%, transparent)`,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: 12,
+                  }}
+                >
                   <div>
-                    <h3
-                      className={`font-semibold ${
-                        suggestion.severity === "high"
-                          ? "text-orange-900"
-                          : suggestion.severity === "medium"
-                          ? "text-yellow-900"
-                          : "text-blue-900"
-                      }`}
-                    >
-                      {suggestion.message}
-                    </h3>
-                    {suggestion.current && suggestion.limit && (
-                      <p
-                        className={`mt-1 text-sm ${
-                          suggestion.severity === "high"
-                            ? "text-orange-700"
-                            : suggestion.severity === "medium"
-                            ? "text-yellow-700"
-                            : "text-blue-700"
-                        }`}
-                      >
-                        Current: {suggestion.current} / Limit:{" "}
-                        {suggestion.limit}
+                    <p style={{ margin: 0, fontWeight: 600, color }}>
+                      {s.message}
+                    </p>
+                    {s.current != null && s.limit != null && (
+                      <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                        Current: {s.current} / Limit: {s.limit}
                       </p>
                     )}
                   </div>
                   <span
-                    className={`text-xs font-semibold px-2 py-1 rounded ${
-                      suggestion.severity === "high"
-                        ? "bg-orange-100 text-orange-700"
-                        : suggestion.severity === "medium"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-blue-100 text-blue-700"
-                    }`}
+                    className="sp-pill"
+                    style={{ borderColor: color, color, flexShrink: 0, textTransform: "capitalize" }}
                   >
-                    {suggestion.type}
+                    {s.severity}
                   </span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Usage Metrics Grid */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Current Usage Metrics
-        </h2>
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Users */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900">Team Members</h3>
-              <span className="text-sm font-medium text-gray-600">
-                {usage.total_users} / {limits.max_users}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full ${getPercentageColor(
-                  getUsagePercentage(usage.total_users, limits.max_users)
-                )}`}
-                style={{
-                  width: `${Math.min(
-                    100,
-                    getUsagePercentage(usage.total_users, limits.max_users)
-                  )}%`,
-                }}
-              ></div>
-            </div>
-            <p className="text-xs text-gray-500">
-              {getUsagePercentage(usage.total_users, limits.max_users)}% used
-            </p>
-          </div>
-
-          {/* Projects */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900">Projects</h3>
-              <span className="text-sm font-medium text-gray-600">
-                {usage.total_projects} / {limits.max_projects}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full ${getPercentageColor(
-                  getUsagePercentage(usage.total_projects, limits.max_projects)
-                )}`}
-                style={{
-                  width: `${Math.min(
-                    100,
-                    getUsagePercentage(usage.total_projects, limits.max_projects)
-                  )}%`,
-                }}
-              ></div>
-            </div>
-            <p className="text-xs text-gray-500">
-              {getUsagePercentage(usage.total_projects, limits.max_projects)}%
-              used
-            </p>
-          </div>
-
-          {/* Bandwidth */}
-          {limits.max_traffic_gb && (
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-gray-900">Bandwidth</h3>
-                <span className="text-sm font-medium text-gray-600">
-                  {usage.bandwidth_used_gb.toFixed(2)} /{" "}
-                  {limits.max_traffic_gb} GB
-                </span>
+      {/* Quota bars */}
+      <div>
+        <h3 style={{ marginBottom: 14 }}>Quota Usage</h3>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: 14,
+          }}
+        >
+          {[
+            { label: "Team Members", current: usage.total_users, limit: limits.max_users },
+            { label: "Projects", current: usage.total_projects, limit: limits.max_projects },
+            { label: "Domains", current: usage.active_domains, limit: limits.max_domains },
+            ...(limits.max_traffic_gb
+              ? [{ label: "Bandwidth", current: usage.bandwidth_used_gb, limit: limits.max_traffic_gb, suffix: " GB" }]
+              : []),
+          ].map(({ label, current, limit, suffix }) => {
+            const p = pct(current, limit);
+            return (
+              <div key={label} className="sp-metric">
+                <div className="sp-metric-head">
+                  <h3 style={{ fontSize: "0.88rem" }}>{label}</h3>
+                  <span style={{ color: progressColor(p), fontWeight: 700, fontSize: "0.88rem" }}>
+                    {p}%
+                  </span>
+                </div>
+                <div className="sp-progress">
+                  <span
+                    style={{
+                      width: `${Math.min(100, p)}%`,
+                      background: `linear-gradient(90deg, ${progressColor(p)}, color-mix(in srgb, ${progressColor(p)} 70%, var(--accent)))`,
+                    }}
+                  />
+                </div>
+                <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                  {typeof current === "number" ? current.toFixed(current % 1 === 0 ? 0 : 2) : current}
+                  {suffix ?? ""} / {limit ?? "∞"}{suffix ?? ""}
+                </p>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full ${getPercentageColor(
-                    getUsagePercentage(
-                      usage.bandwidth_used_gb,
-                      limits.max_traffic_gb
-                    )
-                  )}`}
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      getUsagePercentage(
-                        usage.bandwidth_used_gb,
-                        limits.max_traffic_gb
-                      )
-                    )}%`,
-                  }}
-                ></div>
-              </div>
-              <p className="text-xs text-gray-500">
-                {getUsagePercentage(
-                  usage.bandwidth_used_gb,
-                  limits.max_traffic_gb
-                )}
-                % used
-              </p>
-            </div>
-          )}
-
-          {/* Storage */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900">Storage</h3>
-              <span className="text-sm font-medium text-gray-600">
-                {usage.storage_used_mb.toFixed(2)} MB
-              </span>
-            </div>
-            <p className="text-sm text-gray-600">
-              {usage.storage_used_mb > 0 ? "Active storage in use" : "No data"}
-            </p>
-          </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Engagement Metrics */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-gray-900">Engagement Metrics</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-sm text-gray-600">Page Views</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
-              {usage.page_views.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-sm text-gray-600">Unique Visitors</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
-              {usage.unique_visitors.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-sm text-gray-600">API Calls</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
-              {usage.api_calls.toLocaleString()}
-            </p>
-          </div>
+      {/* Engagement KPIs */}
+      <div>
+        <h3 style={{ marginBottom: 14 }}>Today&apos;s Engagement</h3>
+        <div className="sp-metric-grid">
+          {[
+            { label: "Page Views", value: usage.page_views.toLocaleString() },
+            { label: "Unique Visitors", value: usage.unique_visitors.toLocaleString() },
+            { label: "API Calls", value: usage.api_calls.toLocaleString() },
+            { label: "Total Requests", value: usage.total_requests.toLocaleString() },
+            { label: "Storage", value: `${usage.storage_used_mb.toFixed(1)} MB` },
+          ].map((item) => (
+            <article key={item.label} className="sp-metric">
+              <h3 style={{ fontSize: "0.82rem" }}>{item.label}</h3>
+              <p
+                style={{
+                  fontSize: "1.6rem",
+                  fontWeight: 800,
+                  color: "var(--text)",
+                  margin: "4px 0 0",
+                }}
+              >
+                {item.value}
+              </p>
+            </article>
+          ))}
         </div>
       </div>
     </div>

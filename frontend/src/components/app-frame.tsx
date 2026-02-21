@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { AuthProvider } from "@/context/AuthContext";
 
 type Theme = "dark-graphite" | "dark-indigo" | "dark-emerald" | "light-minimal";
 
@@ -41,58 +42,59 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="sp-shell">
-      <header className="sp-topbar">
-        <div className="sp-brand-wrap">
-          <div className="sp-brand-dot" />
-          <div>
-            <h1>SitePilot</h1>
-            <p>Autonomous Business Operating System for Websites</p>
+    <AuthProvider>
+      <div className="sp-shell">
+        <header className="sp-topbar">
+          <div className="sp-brand-wrap">
+            <div className="sp-brand-dot" />
+            <div>
+              <h1>SitePilot</h1>
+              <p>Autonomous Business Operating System for Websites</p>
+            </div>
           </div>
-        </div>
 
-        <div className="sp-actions">
-          <nav className="sp-nav">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`sp-nav-link ${pathname === item.href ? "is-active" : ""}`}
+          <div className="sp-actions">
+            <nav className="sp-nav">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`sp-nav-link ${pathname === item.href ? "is-active" : ""}`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            <label className="sp-theme-picker">
+              <select
+                value={theme}
+                onChange={(e) => onThemeChange(e.target.value)}
+                suppressHydrationWarning
               >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+                <option value="dark-indigo">Dark Indigo</option>
+                <option value="dark-emerald">Dark Emerald</option>
+                <option value="dark-graphite">Dark Graphite</option>
+                <option value="light-minimal">Light Minimal</option>
+              </select>
+            </label>
+          </div>
+        </header>
 
-          <label className="sp-theme-picker">
-            {/* <span>Theme</span> */}
-            <select
-              value={theme}
-              onChange={(e) => onThemeChange(e.target.value)}
-              suppressHydrationWarning
-            >
-              <option value="dark-indigo">Dark Indigo</option>
-              <option value="dark-emerald">Dark Emerald</option>
-              <option value="dark-graphite">Dark Graphite</option>
-              <option value="light-minimal">Light Minimal</option>
-            </select>
-          </label>
-        </div>
-      </header>
+        <main>{children}</main>
 
-      <main>{children}</main>
-
-      <footer className="sp-footer">
-        <div>
-          <strong>SitePilot</strong>
-          <p>Turn websites into self-operating business systems.</p>
-        </div>
-        <div className="sp-footer-links">
-          <Link href="/">Overview</Link>
-          <Link href="/analytics">Readiness</Link>
-          <Link href="/governance">AI Decisions</Link>
-        </div>
-      </footer>
-    </div>
+        <footer className="sp-footer">
+          <div>
+            <strong>SitePilot</strong>
+            <p>Turn websites into self-operating business systems.</p>
+          </div>
+          <div className="sp-footer-links">
+            <Link href="/">Overview</Link>
+            <Link href="/analytics">Readiness</Link>
+            <Link href="/governance">AI Decisions</Link>
+          </div>
+        </footer>
+      </div>
+    </AuthProvider>
   );
 }

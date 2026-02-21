@@ -52,6 +52,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
+  // ── Cookie helpers (middleware reads cookies, not localStorage) ──────────
+  const setAuthCookie = (token: string) => {
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7);
+    document.cookie = `auth_token=${token}; path=/; expires=${expires.toUTCString()}; SameSite=Strict`;
+  };
+
+  const clearAuthCookie = () => {
+    document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict";
+  };
+
   // Initialize from localStorage on mount
   useEffect(() => {
     const storedToken = localStorage.getItem("auth_token");
@@ -59,9 +70,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (storedToken) {
       setToken(storedToken);
-      // Validate token and fetch user
+      setAuthCookie(storedToken); // sync to cookie for middleware
       validateToken(storedToken, storedTenant);
     } else {
+      clearAuthCookie(); // ensure cookie is cleared if no token
       setLoading(false);
     }
   }, []);
@@ -99,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error("Token validation error:", error);
       localStorage.removeItem("auth_token");
       localStorage.removeItem("current_tenant");
+      clearAuthCookie();
       setToken(null);
     } finally {
       setLoading(false);
@@ -131,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       localStorage.setItem("auth_token", data.token);
+      setAuthCookie(data.token);
     } catch (error) {
       throw error;
     }
@@ -183,6 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       localStorage.setItem("auth_token", data.token);
+      setAuthCookie(data.token);
     } catch (error) {
       throw error;
     }
@@ -195,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setCurrentTenant(null);
     localStorage.removeItem("auth_token");
     localStorage.removeItem("current_tenant");
+    clearAuthCookie();
   };
 
   const selectTenant = (tenantId: string) => {

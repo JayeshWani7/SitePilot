@@ -20,7 +20,6 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       await signup(email, password, firstName, lastName, tenantName);
       router.push("/dashboard");
@@ -32,122 +31,149 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-            Create your SitePilot account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{" "}
-            <Link
-              href="/login"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              sign in to your account
-            </Link>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 16px",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: 460 }}>
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 52,
+              height: 52,
+              borderRadius: 14,
+              background: "linear-gradient(135deg, var(--primary), var(--accent))",
+              marginBottom: 16,
+              boxShadow: "0 0 0 10px color-mix(in srgb, var(--primary) 15%, transparent)",
+            }}
+          >
+            <span style={{ fontSize: "1.4rem" }}>🚀</span>
+          </div>
+          <h1 style={{ margin: "0 0 6px", fontSize: "1.7rem" }}>Create your account</h1>
+          <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem" }}>
+            Start your SitePilot journey
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+        <div className="sp-card">
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-700">{error}</p>
+            <div
+              style={{
+                marginBottom: 16,
+                padding: "10px 14px",
+                borderRadius: 8,
+                border: "1px solid var(--danger)",
+                background: "color-mix(in srgb, var(--danger) 12%, transparent)",
+                color: "var(--danger)",
+                fontSize: "0.88rem",
+              }}
+            >
+              {error}
             </div>
           )}
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+          <form onSubmit={handleSubmit} className="sp-form">
+            {/* Name row */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <label>
+                <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500 }}>
                   First Name
-                </label>
+                </span>
                 <input
                   id="firstName"
-                  name="firstName"
                   type="text"
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="First Name"
+                  placeholder="Jane"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                 />
-              </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+              </label>
+              <label>
+                <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500 }}>
                   Last Name
-                </label>
+                </span>
                 <input
                   id="lastName"
-                  name="lastName"
                   type="text"
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Last Name"
+                  placeholder="Doe"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                 />
-              </div>
+              </label>
             </div>
 
-            <div>
-              <label htmlFor="email-address" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
+            <label>
+              <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                Email address <span style={{ color: "var(--danger)" }}>*</span>
+              </span>
               <input
-                id="email-address"
-                name="email"
+                id="email"
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Email address"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-            </div>
+            </label>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+            <label>
+              <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                Password <span style={{ color: "var(--danger)" }}>*</span>
+              </span>
               <input
                 id="password"
-                name="password"
                 type="password"
                 autoComplete="new-password"
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Password (min. 6 characters)"
+                placeholder="Min. 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </div>
+            </label>
 
-            <div>
-              <label htmlFor="tenantName" className="block text-sm font-medium text-gray-700">
-                Organization Name (Optional)
-              </label>
+            <label>
+              <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                Organization Name{" "}
+                <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span>
+              </span>
               <input
                 id="tenantName"
-                name="tenantName"
                 type="text"
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Your company or project name"
+                placeholder="Your company or project"
                 value={tenantName}
                 onChange={(e) => setTenantName(e.target.value)}
               />
-            </div>
-          </div>
+            </label>
 
-          <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="sp-btn sp-primary"
+              style={{ width: "100%", marginTop: 6, padding: "12px" }}
             >
               {loading ? "Creating account..." : "Create account"}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
+
+        <p style={{ textAlign: "center", marginTop: 20, color: "var(--text-muted)", fontSize: "0.88rem" }}>
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 600 }}
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -4,13 +4,39 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import RoleManagement from "@/components/RoleManagement";
+import TenantUsersTable from "@/components/TenantUsersTable";
 import UsageDashboard from "@/components/UsageDashboard";
+import UsageAnalytics from "@/components/UsageAnalytics";
+import UsageAlerts from "@/components/UsageAlerts";
+import FeatureFlags from "@/components/FeatureFlags";
+import SubscriptionPanel from "@/components/SubscriptionPanel";
+import AdminTenantsTable from "@/components/AdminTenantsTable";
+
+type Tab =
+  | "overview"
+  | "tenants"
+  | "team"
+  | "usage"
+  | "analytics"
+  | "alerts"
+  | "flags"
+  | "subscription";
+
+const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: "overview", label: "Overview", icon: "⌂" },
+  { id: "tenants", label: "Tenants", icon: "🏢" },
+  { id: "team", label: "Team", icon: "👥" },
+  { id: "usage", label: "Usage", icon: "📊" },
+  { id: "analytics", label: "Analytics", icon: "📈" },
+  { id: "alerts", label: "Alerts", icon: "🔔" },
+  { id: "flags", label: "Feature Flags", icon: "🚩" },
+  { id: "subscription", label: "Subscription", icon: "💎" },
+];
 
 export default function DashboardPage() {
   const { user, currentTenant, logout, selectTenant, tenants } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "team" | "usage">("overview");
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   const handleLogout = () => {
     logout();
@@ -19,182 +45,250 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-100">
-        {/* Header */}
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">SitePilot</h1>
-                {currentTenant && (
-                  <p className="text-sm text-gray-600">
-                    {currentTenant.display_name} • {currentTenant.role}
-                  </p>
-                )}
+      <div style={{ minHeight: "100vh" }}>
+        {/* Top Bar */}
+        <div
+          style={{
+            borderBottom: "1px solid var(--border)",
+            background: "color-mix(in srgb, var(--bg-elevated) 90%, transparent)",
+            backdropFilter: "blur(10px)",
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+            padding: "0 24px",
+          }}
+        >
+          <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+            {/* Brand + user row */}
+            <div
+              className="sp-topbar"
+              style={{ paddingTop: 14, paddingBottom: tenants.length > 1 ? 0 : 14 }}
+            >
+              <div className="sp-brand-wrap">
+                <div className="sp-brand-dot" />
+                <div>
+                  <h1>SitePilot</h1>
+                  {currentTenant && (
+                    <p>
+                      {currentTenant.display_name}
+                      <span style={{ opacity: 0.5, margin: "0 6px" }}>·</span>
+                      <span style={{ textTransform: "capitalize" }}>
+                        {currentTenant.role}
+                      </span>
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="sp-actions">
                 {user && (
-                  <div className="text-sm">
-                    <p className="text-gray-900 font-medium">{user.email}</p>
-                    <p className="text-gray-600">{user.firstName}</p>
+                  <div style={{ textAlign: "right", fontSize: "0.85rem" }}>
+                    <p style={{ margin: 0, fontWeight: 600, color: "var(--text)" }}>
+                      {user.firstName
+                        ? `${user.firstName} ${user.lastName || ""}`
+                        : user.email}
+                    </p>
+                    <p style={{ margin: 0, color: "var(--text-muted)" }}>{user.email}</p>
                   </div>
                 )}
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                  Logout
+                <button className="sp-btn sp-ghost" style={{ fontSize: "0.85rem" }} onClick={handleLogout}>
+                  Sign out
                 </button>
               </div>
             </div>
 
-            {/* Tenant Selector */}
+            {/* Tenant picker */}
             {tenants.length > 1 && (
-              <div className="mt-4 flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Switch Tenant:
-                </label>
-                <select
-                  value={currentTenant?.id || ""}
-                  onChange={(e) => selectTenant(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  {tenants.map((tenant) => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.display_name}
-                    </option>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingBottom: 12,
+                  marginTop: -4,
+                }}
+              >
+                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                  Switch:
+                </span>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {tenants.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => selectTenant(t.id)}
+                      style={{
+                        padding: "3px 12px",
+                        borderRadius: 999,
+                        border: "1px solid",
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                        background:
+                          currentTenant?.id === t.id
+                            ? "color-mix(in srgb, var(--primary) 20%, transparent)"
+                            : "transparent",
+                        borderColor:
+                          currentTenant?.id === t.id
+                            ? "var(--primary)"
+                            : "var(--border)",
+                        color:
+                          currentTenant?.id === t.id
+                            ? "var(--text)"
+                            : "var(--text-muted)",
+                      }}
+                    >
+                      {t.display_name}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             )}
-          </div>
-        </header>
 
-        {/* Navigation Tabs */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <nav className="flex space-x-8" aria-label="Tabs">
-              <button
-                onClick={() => setActiveTab("overview")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === "overview"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab("team")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === "team"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Team
-              </button>
-              <button
-                onClick={() => setActiveTab("usage")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === "usage"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Usage
-              </button>
+            {/* Nav tabs — floating pill style */}
+            <nav
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+                padding: "10px 0 12px",
+                borderTop: "1px solid var(--border)",
+              }}
+            >
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    padding: "6px 16px",
+                    borderRadius: 999,
+                    border: "1px solid",
+                    fontSize: "0.84rem",
+                    cursor: "pointer",
+                    gap: 6,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    background:
+                      activeTab === tab.id
+                        ? "color-mix(in srgb, var(--primary) 22%, var(--surface))"
+                        : "color-mix(in srgb, var(--surface) 60%, transparent)",
+                    borderColor:
+                      activeTab === tab.id ? "var(--primary)" : "var(--border)",
+                    color:
+                      activeTab === tab.id ? "var(--text)" : "var(--text-muted)",
+                    fontWeight: activeTab === tab.id ? 600 : 400,
+                    boxShadow:
+                      activeTab === tab.id
+                        ? "0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent)"
+                        : "none",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
             </nav>
           </div>
         </div>
 
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Main content */}
+        <main style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 24px" }}>
+          {/* ── OVERVIEW ─────────────────────────────────── */}
           {activeTab === "overview" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  Welcome to SitePilot
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  Manage your projects, team members, and track usage all in one place.
-                </p>
-
-                {/* Quick Stats */}
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="text-sm text-blue-900 font-semibold">
-                      Current Tenant
-                    </h3>
-                    <p className="text-2xl font-bold text-blue-600 mt-2">
-                      {currentTenant?.display_name}
-                    </p>
+            <div style={{ display: "grid", gap: 20 }}>
+              {/* Hero stats */}
+              <div className="sp-card sp-hero">
+                <div>
+                  <span className="sp-eyebrow">SitePilot Dashboard</span>
+                  <h2>
+                    Welcome back
+                    {user?.firstName ? `, ${user.firstName}` : ""}!
+                  </h2>
+                  <p className="sp-muted">
+                    Manage your tenants, team members, subscriptions, and monitor
+                    usage — all in one place.
+                  </p>
+                  <div className="sp-actions-row">
+                    <button
+                      className="sp-btn sp-primary"
+                      onClick={() => setActiveTab("team")}
+                    >
+                      Manage Team
+                    </button>
+                    <button
+                      className="sp-btn sp-ghost"
+                      onClick={() => setActiveTab("usage")}
+                    >
+                      View Usage
+                    </button>
                   </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <h3 className="text-sm text-green-900 font-semibold">
-                      Your Role
-                    </h3>
-                    <p className="text-2xl font-bold text-green-600 mt-2 capitalize">
-                      {currentTenant?.role}
-                    </p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <h3 className="text-sm text-purple-900 font-semibold">
-                      Plan
-                    </h3>
-                    <p className="text-2xl font-bold text-purple-600 mt-2 capitalize">
+                </div>
+                <div className="sp-hero-stats">
+                  <article>
+                    <strong>{tenants.length}</strong>
+                    <span>Tenants</span>
+                  </article>
+                  <article>
+                    <strong style={{ textTransform: "capitalize" }}>
+                      {currentTenant?.role || "—"}
+                    </strong>
+                    <span>Your Role</span>
+                  </article>
+                  <article>
+                    <strong>
                       {currentTenant?.subscription_plan || "Free"}
-                    </p>
-                  </div>
+                    </strong>
+                    <span>Plan</span>
+                  </article>
                 </div>
               </div>
 
-              {/* Getting Started */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Getting Started
-                </h3>
-                <ul className="space-y-3">
-                  <li className="flex items-start">
-                    <span className="flex-shrink-0 h-6 w-6 text-green-500">
-                      ✓
-                    </span>
-                    <p className="ml-3 text-gray-700">
-                      Create your first project
+              {/* Quick actions */}
+              <div className="sp-kpi-grid">
+                {[
+                  { icon: "🏢", label: "Tenants", desc: "View all your tenant memberships", tab: "tenants" as Tab },
+                  { icon: "👥", label: "Team", desc: "Invite members and manage roles", tab: "team" as Tab },
+                  { icon: "📊", label: "Live Usage", desc: "Real-time usage metrics", tab: "usage" as Tab },
+                  { icon: "📈", label: "Analytics", desc: "Historical breakdown & charts", tab: "analytics" as Tab },
+                  { icon: "🔔", label: "Alerts", desc: "Active and resolved alerts", tab: "alerts" as Tab },
+                  { icon: "🚩", label: "Feature Flags", desc: "Enabled features for this tenant", tab: "flags" as Tab },
+                  { icon: "💎", label: "Subscription", desc: "Current plan & upgrade options", tab: "subscription" as Tab },
+                ].map((item) => (
+                  <article
+                    key={item.tab}
+                    className="sp-kpi"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setActiveTab(item.tab)}
+                  >
+                    <span style={{ fontSize: "1.5rem" }}>{item.icon}</span>
+                    <h3 style={{ margin: "8px 0 4px" }}>{item.label}</h3>
+                    <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                      {item.desc}
                     </p>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="flex-shrink-0 h-6 w-6 text-green-500">
-                      ✓
-                    </span>
-                    <p className="ml-3 text-gray-700">
-                      Invite team members from the Team tab
-                    </p>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="flex-shrink-0 h-6 w-6 text-green-500">
-                      ✓
-                    </span>
-                    <p className="ml-3 text-gray-700">
-                      Monitor usage from the Usage tab
-                    </p>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="flex-shrink-0 h-6 w-6 text-green-500">
-                      ✓
-                    </span>
-                    <p className="ml-3 text-gray-700">
-                      Upgrade your plan when needed
-                    </p>
-                  </li>
-                </ul>
+                  </article>
+                ))}
               </div>
             </div>
           )}
 
-          {activeTab === "team" && <RoleManagement />}
+          {/* ── TENANTS ───────────────────────────────────── */}
+          {activeTab === "tenants" && <AdminTenantsTable />}
 
+          {/* ── TEAM ──────────────────────────────────────── */}
+          {activeTab === "team" && <TenantUsersTable />}
+
+          {/* ── USAGE ─────────────────────────────────────── */}
           {activeTab === "usage" && <UsageDashboard />}
+
+          {/* ── ANALYTICS ─────────────────────────────────── */}
+          {activeTab === "analytics" && <UsageAnalytics />}
+
+          {/* ── ALERTS ────────────────────────────────────── */}
+          {activeTab === "alerts" && <UsageAlerts />}
+
+          {/* ── FEATURE FLAGS ─────────────────────────────── */}
+          {activeTab === "flags" && <FeatureFlags />}
+
+          {/* ── SUBSCRIPTION ──────────────────────────────── */}
+          {activeTab === "subscription" && <SubscriptionPanel />}
         </main>
       </div>
     </ProtectedRoute>

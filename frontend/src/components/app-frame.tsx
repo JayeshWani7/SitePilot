@@ -15,11 +15,11 @@ const THEME_LABELS: Record<Theme, string> = {
 };
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "⌂" },
-  { href: "/projects", label: "Projects", icon: "📁" },
-  { href: "/lifecycle", label: "Lifecycle", icon: "🔄" },
-  { href: "/analytics", label: "Analytics", icon: "📈" },
-  { href: "/governance", label: "Governance", icon: "⚖️" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/projects", label: "Projects" },
+  { href: "/lifecycle", label: "Lifecycle" },
+  { href: "/analytics", label: "Analytics" },
+  { href: "/governance", label: "Governance" },
 ];
 
 function NavContent({ theme, onThemeChange }: { theme: Theme; onThemeChange: (v: string) => void }) {
@@ -207,7 +207,6 @@ function NavContent({ theme, onThemeChange }: { theme: Theme; onThemeChange: (v:
               onMouseEnter={e => { if (!active) { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "color-mix(in srgb, var(--border) 30%, transparent)"; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; } }}
             >
-              <span style={{ fontSize: "0.9rem" }}>{item.icon}</span>
               {item.label}
             </Link>
           );
@@ -235,7 +234,7 @@ function NavContent({ theme, onThemeChange }: { theme: Theme; onThemeChange: (v:
               onMouseEnter={e => { if (!active) { e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 20%, transparent)"; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; } }}
             >
-              🌐 Builder
+              Builder
             </Link>
           );
         })()}

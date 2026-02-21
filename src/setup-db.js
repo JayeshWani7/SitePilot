@@ -66,6 +66,7 @@ async function main() {
       '05_rbac_seed.sql',
       '06_builder.sql',
       '07_builder_projects.sql',
+      '08_deployments.sql',
     ];
 
     for (const file of sqlFiles) {

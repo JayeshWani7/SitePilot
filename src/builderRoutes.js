@@ -436,4 +436,245 @@ router.post('/pages/:id/restore/:versionId', authenticate, async (req, res) => {
     }
 });
 
+// ══════════════════════════════════════════════════════════════
+//  DEPLOYMENTS
+// ══════════════════════════════════════════════════════════════
+
+// GET /builder/projects/:id/deployments — list all deployment versions
+router.get('/projects/:id/deployments', authenticate, async (req, res) => {
+    try {
+        const tenantId = req.headers['x-tenant-id'] || null;
+        if (!tenantId) return res.status(400).json({ error: 'No active tenant' });
+        const role = await callerRole(req.user.id, tenantId);
+        if (!role) return res.status(403).json({ error: 'Not a member of this tenant' });
+
+        const { rows } = await pool.query(
+            `SELECT d.id, d.subdomain, d.version_number, d.is_live, d.deployed_at,
+                    u.first_name, u.last_name, u.email,
+                    jsonb_array_length(d.pages) AS page_count
+             FROM builder_deployments d
+             LEFT JOIN users u ON u.id = d.deployed_by
+             WHERE d.project_id = $1 AND d.tenant_id = $2
+             ORDER BY d.version_number DESC`,
+            [req.params.id, tenantId]
+        );
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /builder/projects/:id/deploy — create new deployment snapshot (developer+)
+router.post('/projects/:id/deploy', authenticate, async (req, res) => {
+    try {
+        const tenantId = req.headers['x-tenant-id'] || req.body?.tenantId;
+        if (!tenantId) return res.status(400).json({ error: 'No active tenant' });
+
+        const role = await callerRole(req.user.id, tenantId);
+        if (!role || ROLE_RANK[role] < ROLE_RANK.developer) {
+            return res.status(403).json({ error: 'Developer or above required to deploy' });
+        }
+
+        // Validate / resolve subdomain
+        let { subdomain } = req.body;
+        if (!subdomain) {
+            // Re-deploying: use previous subdomain for this project if set
+            const { rows: prev } = await pool.query(
+                'SELECT subdomain FROM builder_deployments WHERE project_id = $1 ORDER BY version_number DESC LIMIT 1',
+                [req.params.id]
+            );
+            subdomain = prev.length ? prev[0].subdomain : null;
+        }
+        if (!subdomain) return res.status(400).json({ error: 'subdomain is required for the first deployment' });
+
+        // Sanitise: lowercase, alphanumeric + hyphens only
+        subdomain = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-').replace(/^-|-$/g, '');
+        if (!subdomain) return res.status(400).json({ error: 'Invalid subdomain' });
+
+        // Check subdomain is not already claimed by ANOTHER project
+        const { rows: conflict } = await pool.query(
+            'SELECT project_id FROM builder_deployments WHERE subdomain = $1 AND project_id != $2 LIMIT 1',
+            [subdomain, req.params.id]
+        );
+        if (conflict.length) return res.status(409).json({ error: `Subdomain "${subdomain}" is already in use` });
+
+        // Fetch all pages for this project
+        const { rows: pages } = await pool.query(
+            'SELECT name, route, elements FROM builder_pages WHERE project_id = $1 ORDER BY route ASC',
+            [req.params.id]
+        );
+
+        // Fetch project for HTML title
+        const { rows: proj } = await pool.query('SELECT name FROM builder_projects WHERE id = $1', [req.params.id]);
+        const projectName = proj.length ? proj[0].name : 'Website';
+
+        // Compile pages → HTML
+        function elToHtml(el) {
+            if (!el) return '';
+            const children = (el.children || []).map(elToHtml).join('');
+            const s = el.styles || {};
+            const styleStr = Object.entries(s).map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}:${v}`).join(';');
+            const style = styleStr ? ` style="${styleStr}"` : '';
+            const text = el.content ? el.content : '';
+            const attrs = el.attrs ? Object.entries(el.attrs).map(([k, v]) => ` ${k}="${v}"`).join('') : '';
+            switch (el.tag) {
+                case 'img': return `<img${style}${attrs} />`;
+                case 'hr': return `<hr${style} />`;
+                case 'br': return `<br />`;
+                case 'iframe': return `<iframe${style}${attrs}></iframe>`;
+                default: return `<${el.tag}${style}${attrs}>${text}${children}</${el.tag}>`;
+            }
+        }
+
+        const baseUrl = `/sites/${subdomain}`;
+        const navLinks = pages.map(p => {
+            const href = baseUrl + (p.route === '/' ? '/' : p.route);
+            return `<a href="${href}">${p.name}</a>`;
+        }).join('\n        ');
+
+        const compiledPages = pages.map(p => {
+            const body = (p.elements || []).map(elToHtml).join('\n');
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${p.name} — ${projectName}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    img { max-width: 100%; }
+    button { cursor: pointer; }
+    .sp-site-nav { display: flex; gap: 16px; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e5e7eb; }
+    .sp-site-nav a { text-decoration: none; color: #374151; font-weight: 500; }
+    .sp-site-nav a:hover { color: #6366f1; }
+  </style>
+</head>
+<body>
+  <nav class="sp-site-nav">
+    ${navLinks}
+  </nav>
+  ${body}
+</body>
+</html>`;
+            return { route: p.route, name: p.name, html };
+        });
+
+        // Get next version number for this project
+        const { rows: versionRow } = await pool.query(
+            'SELECT COALESCE(MAX(version_number), 0) + 1 AS next FROM builder_deployments WHERE project_id = $1',
+            [req.params.id]
+        );
+        const nextVersion = versionRow[0].next;
+
+        // Mark all previous deployments for this project as not live
+        await pool.query(
+            'UPDATE builder_deployments SET is_live = false WHERE project_id = $1',
+            [req.params.id]
+        );
+
+        // Insert new deployment (is_live = true)
+        const { rows: deployment } = await pool.query(
+            `INSERT INTO builder_deployments (project_id, tenant_id, subdomain, version_number, is_live, pages, deployed_by)
+             VALUES ($1, $2, $3, $4, true, $5, $6) RETURNING *`,
+            [req.params.id, tenantId, subdomain, nextVersion, JSON.stringify(compiledPages), req.user.id]
+        );
+
+        res.status(201).json({
+            ...deployment[0],
+            url: `/sites/${subdomain}`,
+            page_count: compiledPages.length,
+        });
+    } catch (err) {
+        console.error('Deploy error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /builder/deployments/:id/activate — promote a version to live (developer+)
+router.post('/deployments/:id/activate', authenticate, async (req, res) => {
+    try {
+        const tenantId = req.headers['x-tenant-id'] || req.body?.tenantId;
+        if (!tenantId) return res.status(400).json({ error: 'No active tenant' });
+
+        const role = await callerRole(req.user.id, tenantId);
+        if (!role || ROLE_RANK[role] < ROLE_RANK.developer) {
+            return res.status(403).json({ error: 'Developer or above required to activate deployments' });
+        }
+
+        // Fetch the target deployment and verify it belongs to this tenant
+        const { rows: target } = await pool.query(
+            'SELECT id, project_id FROM builder_deployments WHERE id = $1 AND tenant_id = $2',
+            [req.params.id, tenantId]
+        );
+        if (!target.length) return res.status(404).json({ error: 'Deployment not found' });
+
+        const projectId = target[0].project_id;
+
+        // Deactivate all other versions for this project
+        await pool.query(
+            'UPDATE builder_deployments SET is_live = false WHERE project_id = $1',
+            [projectId]
+        );
+
+        // Activate the target
+        const { rows: updated } = await pool.query(
+            'UPDATE builder_deployments SET is_live = true WHERE id = $1 RETURNING *',
+            [req.params.id]
+        );
+
+        res.json({ ...updated[0], url: `/sites/${updated[0].subdomain}` });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  PUBLIC SITE SERVING  /sites/:subdomain/*
+//  (No auth — public facing)
+// ══════════════════════════════════════════════════════════════
+
+router.get('/site/:subdomain', serveSite);
+router.get('/site/:subdomain/*', serveSite);
+
+async function serveSite(req, res) {
+    try {
+        const { subdomain } = req.params;
+        // Grab the live deployment
+        const { rows } = await pool.query(
+            'SELECT pages FROM builder_deployments WHERE subdomain = $1 AND is_live = true LIMIT 1',
+            [subdomain]
+        );
+        if (!rows.length) {
+            return res.status(404).send(`
+                <!DOCTYPE html><html><body style="font-family:system-ui;text-align:center;padding:80px">
+                <h2>Site not found</h2>
+                <p>No live deployment found for <code>${subdomain}</code>.</p>
+                </body></html>`);
+        }
+
+        const pages = rows[0].pages || [];
+        // Determine the requested route
+        const rawPath = req.params[0] ? '/' + req.params[0] : '/';
+        const route = rawPath === '' ? '/' : rawPath;
+
+        const page = pages.find(p => p.route === route)
+            || pages.find(p => p.route === '/')   // fallback to homepage
+            || pages[0];
+
+        if (!page) {
+            return res.status(404).send(`
+                <!DOCTYPE html><html><body style="font-family:system-ui;text-align:center;padding:80px">
+                <h2>Page not found</h2>
+                <p>Route <code>${route}</code> doesn't exist in this site.</p>
+                </body></html>`);
+        }
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(page.html);
+    } catch (err) {
+        res.status(500).send('Internal error: ' + err.message);
+    }
+}
+
 module.exports = router;

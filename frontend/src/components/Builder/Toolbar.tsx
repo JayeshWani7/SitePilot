@@ -7,9 +7,9 @@ import Link from "next/link";
 import { useState } from "react";
 
 const DEVICES = [
-    { id: "desktop" as const, icon: "🖥", label: "Desktop" },
-    { id: "tablet" as const, icon: "📱", label: "Tablet" },
-    { id: "mobile" as const, icon: "📲", label: "Mobile" },
+    { id: "desktop" as const, icon: "Desktop" },
+    { id: "tablet" as const, icon: "Tablet" },
+    { id: "mobile" as const, icon: "Mobile" },
 ];
 
 export default function BuilderToolbar({ onOpenVersions }: { onOpenVersions: () => void }) {
@@ -74,9 +74,9 @@ export default function BuilderToolbar({ onOpenVersions }: { onOpenVersions: () 
 
             {/* Device */}
             {DEVICES.map((d) => (
-                <button key={d.id} title={d.label}
+                <button key={d.id} title={d.icon}
                     className={`sp-btn ${device === d.id ? "sp-secondary" : "sp-ghost"}`}
-                    style={{ padding: "4px 9px" }}
+                    style={{ padding: "4px 10px", fontSize: "0.78rem" }}
                     onClick={() => setDevice(d.id)}>
                     {d.icon}
                 </button>
@@ -87,30 +87,27 @@ export default function BuilderToolbar({ onOpenVersions }: { onOpenVersions: () 
             {/* Version history */}
             {pageId && (
                 <button className="sp-btn sp-ghost" onClick={onOpenVersions} style={{ padding: "5px 12px", fontSize: "0.8rem" }}>
-                    🕐 History
+                    History
                 </button>
             )}
 
             {/* Preview */}
             <button className={`sp-btn ${previewMode ? "sp-secondary" : "sp-ghost"}`} onClick={togglePreview} style={{ padding: "5px 12px" }}>
-                {previewMode ? "✏ Edit" : "👁 Preview"}
+                {previewMode ? "Edit" : "Preview"}
             </button>
 
-            {/* Clear */}
             <button className="sp-btn sp-ghost" onClick={clear} title="Clear canvas"
-                style={{ padding: "5px 9px", color: "var(--danger)" }}>
-                🗑
+                style={{ padding: "5px 10px", color: "var(--danger)", fontSize: "0.8rem" }}>
+                Clear
             </button>
 
-            {/* Save */}
             <button className="sp-btn sp-secondary" onClick={handleSave} disabled={isSaving || !token}
                 style={{ padding: "5px 14px" }}>
-                {isSaving ? "…" : pageId ? "💾 Save" : "💾 Save"}
+                {isSaving ? "Saving..." : "Save"}
             </button>
 
-            {/* Export */}
             <button className="sp-btn sp-primary" onClick={handleExport} style={{ padding: "5px 14px" }}>
-                ⬇ Export HTML
+                Export HTML
             </button>
         </div>
     );

@@ -45,14 +45,14 @@ interface TabDef {
 }
 
 const ALL_TABS: TabDef[] = [
-  { id: "overview", label: "Overview", icon: "⌂", minLevel: 1, desc: "Your workspace at a glance" },
-  { id: "tenants", label: "Tenants", icon: "🏢", minLevel: 4, desc: "Manage all tenant memberships" },
-  { id: "team", label: "Team", icon: "👥", minLevel: 1, desc: "View team members and roles" },
-  { id: "usage", label: "Usage", icon: "📊", minLevel: 2, desc: "Real-time resource metrics" },
-  { id: "analytics", label: "Analytics", icon: "📈", minLevel: 2, desc: "Historical analytics charts" },
-  { id: "alerts", label: "Alerts", icon: "🔔", minLevel: 3, desc: "Usage alerts and warnings" },
-  { id: "flags", label: "Feature Flags", icon: "🚩", minLevel: 4, desc: "Enable / disable features" },
-  { id: "subscription", label: "Subscription", icon: "💎", minLevel: 5, desc: "Plan and billing (owner only)" },
+  { id: "overview", label: "Overview", icon: "", minLevel: 1, desc: "Your workspace at a glance" },
+  { id: "tenants", label: "Tenants", icon: "", minLevel: 4, desc: "Manage all tenant memberships" },
+  { id: "team", label: "Team", icon: "", minLevel: 1, desc: "View team members and roles" },
+  { id: "usage", label: "Usage", icon: "", minLevel: 2, desc: "Real-time resource metrics" },
+  { id: "analytics", label: "Analytics", icon: "", minLevel: 2, desc: "Historical analytics charts" },
+  { id: "alerts", label: "Alerts", icon: "", minLevel: 3, desc: "Usage alerts and warnings" },
+  { id: "flags", label: "Feature Flags", icon: "", minLevel: 4, desc: "Enable / disable features" },
+  { id: "subscription", label: "Subscription", icon: "", minLevel: 5, desc: "Plan and billing (owner only)" },
 ];
 
 export default function DashboardPage() {
@@ -117,7 +117,7 @@ export default function DashboardPage() {
                   boxShadow: safeTab === tab.id ? "0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent)" : "none",
                   transition: "all 0.15s ease",
                 }}>
-                  <span>{tab.icon}</span>{tab.label}
+                  {tab.label}
                 </button>
               ))}
             </nav>
@@ -176,8 +176,7 @@ export default function DashboardPage() {
               <div className="sp-kpi-grid">
                 {visibleTabs.filter((t) => t.id !== "overview").map((item) => (
                   <article key={item.id} className="sp-kpi" style={{ cursor: "pointer" }} onClick={() => setActiveTab(item.id)}>
-                    <span style={{ fontSize: "1.5rem" }}>{item.icon}</span>
-                    <h3 style={{ margin: "8px 0 4px" }}>{item.label}</h3>
+                    <h3 style={{ margin: "0 0 4px" }}>{item.label}</h3>
                     <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-muted)" }}>{item.desc}</p>
                   </article>
                 ))}

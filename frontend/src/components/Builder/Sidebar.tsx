@@ -55,7 +55,7 @@ export default function BuilderSidebar() {
                         fontWeight: tab === t ? 700 : 400, fontSize: "0.82rem",
                         borderBottom: tab === t ? "2px solid var(--primary)" : "2px solid transparent",
                         transition: "all 0.15s",
-                    }}>{t === "blocks" ? "🧱 Blocks" : "📚 Layers"}</button>
+                    }}>{t === "blocks" ? "Blocks" : "Layers"}</button>
                 ))}
             </div>
 

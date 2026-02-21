@@ -93,8 +93,8 @@ export interface EditorState {
     setActiveProjectId: (id: string | null) => void;
 
     // API actions
-    savePage: (token: string, message?: string) => Promise<void>;
-    loadPage: (token: string, pageId: string) => Promise<void>;
+    savePage: (token: string, message?: string, tenantId?: string) => Promise<void>;
+    loadPage: (token: string, pageId: string, tenantId?: string) => Promise<void>;
     createPage: (token: string, name?: string) => Promise<void>;
     createPageInProject: (token: string, projectId: string, name: string, route: string, minRole: string) => Promise<BuilderPage | null>;
 }

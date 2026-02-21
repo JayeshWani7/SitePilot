@@ -117,23 +117,25 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     },
 
     // ── API: save / create page ───────────────────────────────────────────
-    savePage: async (token, message = "") => {
+    savePage: async (token, message = "", tenantId?: string) => {
         const { pageId, pageName, elements } = get();
         set({ isSaving: true, saveError: null });
+        const authHeaders = (json = false) => ({
+            ...(json ? { "Content-Type": "application/json" } : {}),
+            Authorization: `Bearer ${token}`,
+            ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+        });
         try {
-            const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
             if (pageId) {
-                // Update existing page
                 await fetch(`${API}/builder/pages/${pageId}`, {
                     method: "PUT",
-                    headers,
+                    headers: authHeaders(true),
                     body: JSON.stringify({ name: pageName, elements, message }),
                 }).then((r) => { if (!r.ok) throw new Error("Save failed"); return r.json(); });
             } else {
-                // Create new page
                 const data = await fetch(`${API}/builder/pages`, {
                     method: "POST",
-                    headers,
+                    headers: authHeaders(true),
                     body: JSON.stringify({
                         name: pageName,
                         elements,
@@ -152,11 +154,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
     },
 
-    loadPage: async (token, pageId) => {
+    loadPage: async (token, pageId, tenantId?: string) => {
         try {
-            const data = await fetch(`${API}/builder/pages/${pageId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            }).then((r) => { if (!r.ok) throw new Error("Load failed"); return r.json(); });
+            const headers: HeadersInit = { Authorization: `Bearer ${token}` };
+            if (tenantId) (headers as Record<string, string>)["X-Tenant-ID"] = tenantId;
+            const data = await fetch(`${API}/builder/pages/${pageId}`, { headers })
+                .then((r) => { if (!r.ok) throw new Error("Load failed"); return r.json(); });
             set({
                 elements: data.elements ?? [],
                 pageName: data.name,

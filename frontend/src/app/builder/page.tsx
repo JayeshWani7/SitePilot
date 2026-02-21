@@ -181,7 +181,7 @@ function ProjectDetail({ project, myRole, token, tenantId, onBack }: {
     }, [project.id, token]);
 
     async function handleOpenPage(p: Page) {
-        await loadPage(token, p.id);
+        await loadPage(token, p.id, tenantId);
         setActiveProjectId(project.id);
         router.push("/builder/editor");
     }

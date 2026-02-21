@@ -258,7 +258,7 @@ router.get('/pages', authenticate, async (req, res) => {
 router.post('/pages', authenticate, async (req, res) => {
     try {
         const { name = 'Untitled Page', elements = [], project_id = null, route = '/', min_role = 'viewer' } = req.body;
-        const tenantId = req.user.tenantId || null;
+        const tenantId = req.headers['x-tenant-id'] || req.body?.tenantId || null;
 
         const { rows } = await pool.query(
             `INSERT INTO builder_pages (user_id, tenant_id, project_id, name, elements, route, min_role, current_version)
@@ -280,15 +280,28 @@ router.post('/pages', authenticate, async (req, res) => {
 });
 
 // GET /builder/pages/:id
+// Any tenant member with sufficient role can load a page (not just the creator)
 router.get('/pages/:id', authenticate, async (req, res) => {
     try {
+        const tenantId = req.headers['x-tenant-id'] || null;
         const { rows } = await pool.query(
-            `SELECT id, name, elements, route, min_role, project_id, current_version, created_at, updated_at
-             FROM builder_pages WHERE id = $1 AND user_id = $2`,
-            [req.params.id, req.user.id]
+            `SELECT id, name, elements, route, min_role, project_id, user_id, current_version, created_at, updated_at
+             FROM builder_pages WHERE id = $1`,
+            [req.params.id]
         );
         if (!rows.length) return res.status(404).json({ error: 'Page not found' });
-        res.json(rows[0]);
+        const page = rows[0];
+
+        // Allow if creator OR tenant member with sufficient role
+        const isCreator = page.user_id === req.user.id;
+        let hasRoleAccess = false;
+        if (!isCreator && tenantId) {
+            const role = await callerRole(req.user.id, tenantId);
+            hasRoleAccess = role ? hasAccess(role, page.min_role) : false;
+        }
+        if (!isCreator && !hasRoleAccess) return res.status(403).json({ error: 'Access denied' });
+
+        res.json(page);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -298,13 +311,24 @@ router.get('/pages/:id', authenticate, async (req, res) => {
 router.put('/pages/:id', authenticate, async (req, res) => {
     try {
         const { name, elements, message = '', route, min_role } = req.body;
+        const tenantId = req.headers['x-tenant-id'] || null;
+
         const { rows: existing } = await pool.query(
-            'SELECT id, current_version FROM builder_pages WHERE id = $1 AND user_id = $2',
-            [req.params.id, req.user.id]
+            'SELECT id, current_version, user_id, min_role FROM builder_pages WHERE id = $1',
+            [req.params.id]
         );
         if (!existing.length) return res.status(404).json({ error: 'Page not found' });
 
-        const nextVersion = existing[0].current_version + 1;
+        const page = existing[0];
+        const isCreator = page.user_id === req.user.id;
+        let hasRoleAccess = false;
+        if (!isCreator && tenantId) {
+            const role = await callerRole(req.user.id, tenantId);
+            hasRoleAccess = role ? hasAccess(role, page.min_role) : false;
+        }
+        if (!isCreator && !hasRoleAccess) return res.status(403).json({ error: 'Access denied: insufficient role to edit this page' });
+
+        const nextVersion = page.current_version + 1;
         const updateFields = [];
         const values = [];
         let idx = 1;
@@ -355,12 +379,20 @@ router.delete('/pages/:id', authenticate, async (req, res) => {
 // GET /builder/pages/:id/versions
 router.get('/pages/:id/versions', authenticate, async (req, res) => {
     try {
-        const { rows: page } = await pool.query(
-            'SELECT id FROM builder_pages WHERE id = $1 AND user_id = $2',
-            [req.params.id, req.user.id]
+        const tenantId = req.headers['x-tenant-id'] || null;
+        const { rows: pageRows } = await pool.query(
+            'SELECT id, user_id, min_role FROM builder_pages WHERE id = $1',
+            [req.params.id]
         );
-        if (!page.length) return res.status(404).json({ error: 'Page not found' });
-
+        if (!pageRows.length) return res.status(404).json({ error: 'Page not found' });
+        const page = pageRows[0];
+        const isCreator = page.user_id === req.user.id;
+        let hasRoleAccess = false;
+        if (!isCreator && tenantId) {
+            const role = await callerRole(req.user.id, tenantId);
+            hasRoleAccess = role ? hasAccess(role, page.min_role) : false;
+        }
+        if (!isCreator && !hasRoleAccess) return res.status(403).json({ error: 'Access denied' });
         const { rows } = await pool.query(
             `SELECT id, version_number, message, created_at FROM builder_page_versions
              WHERE page_id = $1 ORDER BY version_number DESC`,

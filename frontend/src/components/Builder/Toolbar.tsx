@@ -15,7 +15,7 @@ const DEVICES = [
 export default function BuilderToolbar({ onOpenVersions }: { onOpenVersions: () => void }) {
     const { device, setDevice, undo, redo, clear, togglePreview, previewMode,
         past, future, elements, pageName, setPageName, isSaving, lastSaved, saveError, savePage, pageId } = useEditorStore();
-    const { token } = useAuth();
+    const { token, currentTenant } = useAuth();
     const [editingName, setEditingName] = useState(false);
 
     function handleExport() {
@@ -29,7 +29,7 @@ export default function BuilderToolbar({ onOpenVersions }: { onOpenVersions: () 
 
     async function handleSave() {
         if (!token) return;
-        await savePage(token, "");
+        await savePage(token, "", currentTenant?.id);
     }
 
     return (

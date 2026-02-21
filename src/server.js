@@ -6,6 +6,7 @@ const path = require('path');
 const { withTenantClient } = require('./db');
 const authRoutes = require('./routes');
 const usageRoutes = require('./usage-routes');
+const builderRoutes = require('./builderRoutes');
 const { authenticate, withTenantContext, requirePermission } = require('./middleware');
 
 const app = express();
@@ -29,6 +30,9 @@ app.use('/auth', authRoutes);
 
 // Usage routes (authentication required)
 app.use('/usage', usageRoutes);
+
+// Builder routes (authentication required, user-scoped)
+app.use('/builder', builderRoutes);
 
 app.get('/health', async (req, res) => {
   res.json({ ok: true });

@@ -1,0 +1,17 @@
+{
+  "name": "sitepilot-ai-modules",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/ai-backend",
+    "apps/ai-frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace apps/ai-backend run dev",
+    "dev:frontend": "npm --workspace apps/ai-frontend run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "npm --workspace apps/ai-backend run build",
+    "build:frontend": "npm --workspace apps/ai-frontend run build",
+    "typecheck": "npm --workspace apps/ai-backend run typecheck && npm --workspace apps/ai-frontend run typecheck"
+  }
+}

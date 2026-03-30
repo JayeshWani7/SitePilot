@@ -447,43 +447,107 @@ function ProjectDetail({ project, myRole, token, tenantId, onBack }: {
                             onDeployed={d => { setDeployments(prev => [d, ...prev.map(x => ({ ...x, is_live: false }))]); setShowDeploy(false); setDetailTab("deployments"); }}
                             onClose={() => setShowDeploy(false)} />
                     )}
-                    <NewPageModal
-                        project={project} myRole={myRole} token={token} tenantId={tenantId}
-                        existingRoutes={pages.map(p => p.route)}
-                        onCreated={p => { setPages(prev => [...prev, p]); setShowNewPage(false); }}
-                        onClose={() => setShowNewPage(false)}
-                    />
-            )}
+                    {showNewPage && (
+                        <NewPageModal
+                            project={project} myRole={myRole} token={token} tenantId={tenantId}
+                            existingRoutes={pages.map(p => p.route)}
+                            onCreated={p => { setPages(prev => [...prev, p]); setShowNewPage(false); }}
+                            onClose={() => setShowNewPage(false)}
+                        />
+                    )}
                 </div>
-            );
+            )}
+
+            {/* Deployments tab */}
+            {detailTab === "deployments" && (
+                <div>
+                    {deployments.length === 0 ? (
+                        <div style={{ textAlign: "center", padding: "60px 0" }}>
+                            <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>No deployments yet.</p>
+                            {canDeploy && <button onClick={() => setShowDeploy(true)} disabled={pages.length === 0} style={primaryBtn}>Deploy this project</button>}
+                        </div>
+                    ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                            {deployments.map(d => (
+                                <div key={d.id} style={{
+                                    borderRadius: 12, border: "1px solid",
+                                    borderColor: d.is_live ? "color-mix(in srgb, #4f46e5 40%, var(--border))" : "var(--border)",
+                                    background: d.is_live ? "color-mix(in srgb, #4f46e5 6%, var(--surface))" : "var(--surface)",
+                                    padding: "16px 20px",
+                                    display: "flex", alignItems: "center", gap: 16,
+                                }}>
+                                    {/* Version + status */}
+                                    <div style={{ minWidth: 60 }}>
+                                        <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: d.is_live ? "#6366f1" : "var(--text)" }}>v{d.version_number}</p>
+                                        {d.is_live && (
+                                            <span style={{ fontSize: "0.65rem", background: "#4f46e5", color: "#fff", padding: "1px 7px", borderRadius: 999, fontWeight: 700 }}>LIVE</span>
+                                        )}
+                                    </div>
+                                    {/* Details */}
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ margin: 0, fontWeight: 600, fontSize: "0.88rem" }}>
+                                            /{d.subdomain} &nbsp;<span style={{ color: "var(--text-muted)", fontWeight: 400 }}>({d.page_count} page{d.page_count !== 1 ? "s" : ""})</span>
+                                        </p>
+                                        <p style={{ margin: "3px 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                                            {new Date(d.deployed_at).toLocaleString()} · by {d.first_name ? `${d.first_name} ${d.last_name ?? ""}`.trim() : d.email ?? "unknown"}
+                                        </p>
+                                    </div>
+                                    {/* Actions */}
+                                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                                        {d.is_live && liveUrl && (
+                                            <a href={liveUrl} target="_blank" rel="noreferrer"
+                                                style={{ ...ghostBtn, display: "inline-block", textDecoration: "none", padding: "6px 14px", fontSize: "0.8rem" }}>
+                                                Open
+                                            </a>
+                                        )}
+                                        {!d.is_live && canDeploy && (
+                                            <button onClick={() => handleActivate(d.id)} disabled={activating === d.id}
+                                                style={{
+                                                    ...ghostBtn, padding: "6px 14px", fontSize: "0.8rem",
+                                                    borderColor: "color-mix(in srgb, #4f46e5 40%, var(--border))",
+                                                    color: "#6366f1"
+                                                }}>
+                                                {activating === d.id ? "Activating..." : "Activate"}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
 }
 
-            // ── Main builder home ──────────────────────────────────────────────
-            export default function BuilderHomePage() {
-    const router = useRouter();
-            const {loadTemplate} = useEditorStore();
-            const {token, currentTenant} = useAuth();
-            const [tab, setTab] = useState<"projects" | "templates">("projects");
-            const [projects, setProjects] = useState<Project[]>([]);
-            const [loadingProjects, setLoadingProjects] = useState(false);
-            const [showNewProject, setShowNewProject] = useState(false);
-            const [activeProject, setActiveProject] = useState<Project | null>(null);
-            const [hovered, setHovered] = useState<string | null>(null);
 
-            const myRole = currentTenant?.role ?? "viewer";
+// ── Main builder home ──────────────────────────────────────────────
+export default function BuilderHomePage() {
+    const router = useRouter();
+    const { loadTemplate } = useEditorStore();
+    const { token, currentTenant } = useAuth();
+    const [tab, setTab] = useState<"projects" | "templates">("projects");
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [loadingProjects, setLoadingProjects] = useState(false);
+    const [showNewProject, setShowNewProject] = useState(false);
+    const [activeProject, setActiveProject] = useState<Project | null>(null);
+    const [hovered, setHovered] = useState<string | null>(null);
+
+    const myRole = currentTenant?.role ?? "viewer";
     const canEdit = ROLE_RANK[myRole] >= ROLE_RANK.editor;
 
     useEffect(() => {
         if (!token) return;
-            setLoadingProjects(true);
-            fetch(`${API}/builder/projects`, {headers: buildHeaders(token, currentTenant?.id) })
+        setLoadingProjects(true);
+        fetch(`${API}/builder/projects`, { headers: buildHeaders(token, currentTenant?.id) })
             .then(r => r.json()).then(d => setProjects(Array.isArray(d) ? d : []))
             .finally(() => setLoadingProjects(false));
     }, [token]);
 
-            function handleTemplate(t: Template) {loadTemplate(t); router.push("/builder/editor"); }
+    function handleTemplate(t: Template) { loadTemplate(t); router.push("/builder/editor"); }
 
-            if (activeProject) {
+    if (activeProject) {
         return (
             <div style={{ minHeight: "100vh", padding: "40px 48px", background: "var(--bg)" }}>
                 <style>{`@keyframes fadeSlideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}`}</style>
@@ -492,174 +556,112 @@ function ProjectDetail({ project, myRole, token, tenantId, onBack }: {
                         onBack={() => setActiveProject(null)} />
                 </div>
             </div>
-            );
+        );
     }
 
-            return (
-            <div style={{ minHeight: "100vh", padding: "40px 48px", background: "var(--bg)" }}>
-                <style>{`@keyframes fadeSlideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}`}</style>
-                <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+    return (
+        <div style={{ minHeight: "100vh", padding: "40px 48px", background: "var(--bg)" }}>
+            <style>{`@keyframes fadeSlideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}`}</style>
+            <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
-                    {/* Header */}
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 36 }}>
-                        <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "linear-gradient(135deg, var(--primary), var(--accent))", boxShadow: "0 0 0 5px color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                                    SitePilot Builder
-                                </span>
-                            </div>
-                            <h1 style={{
-                                fontSize: "2.2rem", fontWeight: 900, margin: 0, letterSpacing: "-0.03em",
-                                background: "linear-gradient(135deg, var(--text), var(--primary))",
-                                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-                            }}>
-                                Website Builder
-                            </h1>
-                            <p style={{ margin: "6px 0 0", fontSize: "0.9rem", color: "var(--text-muted)" }}>
-                                Build multi-page websites, organised by project.
-                            </p>
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 36 }}>
+                    <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: "linear-gradient(135deg, var(--primary), var(--accent))", boxShadow: "0 0 0 5px color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+                            <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                                SitePilot Builder
+                            </span>
                         </div>
-                        <button className="sp-btn sp-ghost" onClick={() => router.push("/dashboard")} style={{ flexShrink: 0 }}>
-                            ← Dashboard
+                        <h1 style={{
+                            fontSize: "2.2rem", fontWeight: 900, margin: 0, letterSpacing: "-0.03em",
+                            background: "linear-gradient(135deg, var(--text), var(--primary))",
+                            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+                        }}>
+                            Website Builder
+                        </h1>
+                        <p style={{ margin: "6px 0 0", fontSize: "0.9rem", color: "var(--text-muted)" }}>
+                            Build multi-page websites, organised by project.
+                        </p>
+                    </div>
+                    <button className="sp-btn sp-ghost" onClick={() => router.push("/dashboard")} style={{ flexShrink: 0 }}>
+                        ← Dashboard
+                    </button>
+                </div>
+
+                {/* Tabs */}
+                <div style={{ display: "flex", gap: 0, marginBottom: 28, borderBottom: "1px solid var(--border)" }}>
+                    {(["projects", "templates"] as const).map(t => (
+                        <button key={t} onClick={() => setTab(t)} style={{
+                            padding: "10px 22px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem",
+                            background: "transparent", textTransform: "capitalize",
+                            color: tab === t ? "var(--text)" : "var(--text-muted)",
+                            borderBottom: tab === t ? "2px solid var(--primary)" : "2px solid transparent",
+                            transition: "all 0.15s",
+                        }}>
+                            {t === "projects" ? `Projects (${projects.length})` : "Templates"}
                         </button>
-                    </div>
+                    ))}
+                </div>
 
-                    {/* Tabs */}
-                    <div style={{ display: "flex", gap: 0, marginBottom: 28, borderBottom: "1px solid var(--border)" }}>
-                        {(["projects", "templates"] as const).map(t => (
-                            <button key={t} onClick={() => setTab(t)} style={{
-                                padding: "10px 22px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem",
-                                background: "transparent", textTransform: "capitalize",
-                                color: tab === t ? "var(--text)" : "var(--text-muted)",
-                                borderBottom: tab === t ? "2px solid var(--primary)" : "2px solid transparent",
-                                transition: "all 0.15s",
-                            }}>
-                                {t === "projects" ? `Projects (${projects.length})` : "Templates"}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Projects tab */}
-                    {tab === "projects" && (
-                        <div>
-                            <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center" }}>
-                                {canEdit && (
-                                    <button onClick={() => setShowNewProject(true)} style={primaryBtn}>+ New Project</button>
-                                )}
-                                {!canEdit && (
-                                    <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--text-muted)" }}>
-                                        You have read-only access. Editor role required to create projects.
-                                    </p>
-                                )}
-                            </div>
-
-                            {loadingProjects ? (
-                                <p style={{ color: "var(--text-muted)", padding: "48px 0", textAlign: "center" }}>Loading projects…</p>
-                            ) : projects.length === 0 ? (
-                                <div style={{ textAlign: "center", padding: "80px 0" }}>
-                                    <p style={{ color: "var(--text-muted)", fontSize: "1rem", marginBottom: 4 }}>No projects yet.</p>
-                                    <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 24 }}>Create a project to start building your website.</p>
-                                    {canEdit && <button onClick={() => setShowNewProject(true)} style={primaryBtn}>+ Create your first project</button>}
-                                </div>
-                            ) : (
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
-                                    {projects.map(p => (
-                                        <div key={p.id}
-                                            onClick={() => setActiveProject(p)}
-                                            onMouseEnter={() => setHovered(p.id)}
-                                            onMouseLeave={() => setHovered(null)}
-                                            style={{
-                                                borderRadius: 16, border: "1px solid", cursor: "pointer", overflow: "hidden",
-                                                borderColor: hovered === p.id ? "var(--primary)" : "var(--border)",
-                                                background: hovered === p.id ? "color-mix(in srgb, var(--primary) 6%, var(--surface))" : "var(--surface)",
-                                                transition: "all 0.18s",
-                                                boxShadow: hovered === p.id ? "0 8px 32px rgba(0,0,0,0.22)" : "none",
-                                                transform: hovered === p.id ? "translateY(-2px)" : "none",
-                                            }}>
-                                            {/* Project color band */}
-                                            <div style={{
-                                                height: 6,
-                                                background: "linear-gradient(90deg, var(--primary), var(--accent))",
-                                            }} />
-                                            <div style={{ padding: "16px 18px" }}>
-                                                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                                                    <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800 }}>{p.name}</h3>
-                                                    <span style={{
-                                                        fontSize: "0.7rem", padding: "2px 8px", borderRadius: 999, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
-                                                        background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)",
-                                                    }}>
-                                                        {p.min_role}+
-                                                    </span>
-                                                </div>
-                                                {p.description && (
-                                                    <p style={{ margin: "5px 0 0", fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: 1.4 }}>{p.description}</p>
-                                                )}
-                                                <p style={{ margin: "10px 0 0", fontSize: "0.74rem", color: "var(--text-muted)" }}>
-                                                    {p.page_count} page{p.page_count === 1 ? "" : "s"} · Updated {new Date(p.updated_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                {/* Projects tab */}
+                {tab === "projects" && (
+                    <div>
+                        <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center" }}>
+                            {canEdit && (
+                                <button onClick={() => setShowNewProject(true)} style={primaryBtn}>+ New Project</button>
+                            )}
+                            {!canEdit && (
+                                <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--text-muted)" }}>
+                                    You have read-only access. Editor role required to create projects.
+                                </p>
                             )}
                         </div>
-                    )}
-                </div>
-            )}
 
-                {/* Deployments tab */}
-                {detailTab === "deployments" && (
-                    <div>
-                        {deployments.length === 0 ? (
-                            <div style={{ textAlign: "center", padding: "60px 0" }}>
-                                <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>No deployments yet.</p>
-                                {canDeploy && <button onClick={() => setShowDeploy(true)} disabled={pages.length === 0} style={primaryBtn}>Deploy this project</button>}
+                        {loadingProjects ? (
+                            <p style={{ color: "var(--text-muted)", padding: "48px 0", textAlign: "center" }}>Loading projects…</p>
+                        ) : projects.length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "80px 0" }}>
+                                <p style={{ color: "var(--text-muted)", fontSize: "1rem", marginBottom: 4 }}>No projects yet.</p>
+                                <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 24 }}>Create a project to start building your website.</p>
+                                {canEdit && <button onClick={() => setShowNewProject(true)} style={primaryBtn}>+ Create your first project</button>}
                             </div>
                         ) : (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                {deployments.map(d => (
-                                    <div key={d.id} style={{
-                                        borderRadius: 12, border: "1px solid",
-                                        borderColor: d.is_live ? "color-mix(in srgb, #4f46e5 40%, var(--border))" : "var(--border)",
-                                        background: d.is_live ? "color-mix(in srgb, #4f46e5 6%, var(--surface))" : "var(--surface)",
-                                        padding: "16px 20px",
-                                        display: "flex", alignItems: "center", gap: 16,
-                                    }}>
-                                        {/* Version + status */}
-                                        <div style={{ minWidth: 60 }}>
-                                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: d.is_live ? "#6366f1" : "var(--text)" }}>v{d.version_number}</p>
-                                            {d.is_live && (
-                                                <span style={{ fontSize: "0.65rem", background: "#4f46e5", color: "#fff", padding: "1px 7px", borderRadius: 999, fontWeight: 700 }}>LIVE</span>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
+                                {projects.map(p => (
+                                    <div key={p.id}
+                                        onClick={() => setActiveProject(p)}
+                                        onMouseEnter={() => setHovered(p.id)}
+                                        onMouseLeave={() => setHovered(null)}
+                                        style={{
+                                            borderRadius: 16, border: "1px solid", cursor: "pointer", overflow: "hidden",
+                                            borderColor: hovered === p.id ? "var(--primary)" : "var(--border)",
+                                            background: hovered === p.id ? "color-mix(in srgb, var(--primary) 6%, var(--surface))" : "var(--surface)",
+                                            transition: "all 0.18s",
+                                            boxShadow: hovered === p.id ? "0 8px 32px rgba(0,0,0,0.22)" : "none",
+                                            transform: hovered === p.id ? "translateY(-2px)" : "none",
+                                        }}>
+                                        {/* Project color band */}
+                                        <div style={{
+                                            height: 6,
+                                            background: "linear-gradient(90deg, var(--primary), var(--accent))",
+                                        }} />
+                                        <div style={{ padding: "16px 18px" }}>
+                                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                                                <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800 }}>{p.name}</h3>
+                                                <span style={{
+                                                    fontSize: "0.7rem", padding: "2px 8px", borderRadius: 999, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
+                                                    background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)",
+                                                }}>
+                                                    {p.min_role}+
+                                                </span>
+                                            </div>
+                                            {p.description && (
+                                                <p style={{ margin: "5px 0 0", fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: 1.4 }}>{p.description}</p>
                                             )}
-                                        </div>
-                                        {/* Details */}
-                                        <div style={{ flex: 1 }}>
-                                            <p style={{ margin: 0, fontWeight: 600, fontSize: "0.88rem" }}>
-                                                /{d.subdomain} &nbsp;<span style={{ color: "var(--text-muted)", fontWeight: 400 }}>({d.page_count} page{d.page_count !== 1 ? "s" : ""})</span>
+                                            <p style={{ margin: "10px 0 0", fontSize: "0.74rem", color: "var(--text-muted)" }}>
+                                                {p.page_count} page{p.page_count === 1 ? "" : "s"} · Updated {new Date(p.updated_at).toLocaleDateString()}
                                             </p>
-                                            <p style={{ margin: "3px 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                                {new Date(d.deployed_at).toLocaleString()} · by {d.first_name ? `${d.first_name} ${d.last_name ?? ""}`.trim() : d.email ?? "unknown"}
-                                            </p>
-                                        </div>
-                                        {/* Actions */}
-                                        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                                            {d.is_live && liveUrl && (
-                                                <a href={liveUrl} target="_blank" rel="noreferrer"
-                                                    style={{ ...ghostBtn, display: "inline-block", textDecoration: "none", padding: "6px 14px", fontSize: "0.8rem" }}>
-                                                    Open
-                                                </a>
-                                            )}
-                                            {!d.is_live && canDeploy && (
-                                                <button onClick={() => handleActivate(d.id)} disabled={activating === d.id}
-                                                    style={{
-                                                        ...ghostBtn, padding: "6px 14px", fontSize: "0.8rem",
-                                                        borderColor: "color-mix(in srgb, #4f46e5 40%, var(--border))",
-                                                        color: "#6366f1"
-                                                    }}>
-                                                    {activating === d.id ? "Activating..." : "Activate"}
-                                                </button>
-                                            )}
                                         </div>
                                     </div>
                                 ))}

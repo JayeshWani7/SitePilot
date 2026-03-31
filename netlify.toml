@@ -1,0 +1,8 @@
+[build]
+  command = "npm install && npm --prefix frontend install && npm --prefix frontend run build"
+  publish = "frontend/.next"
+  functions = "backend/functions"
+
+[env]
+  [env.production]
+    environment = { NODE_ENV = "production" }

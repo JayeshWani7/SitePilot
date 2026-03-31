@@ -539,13 +539,92 @@ export default function BuilderHomePage() {
 
     useEffect(() => {
         if (!token) return;
+        console.log("Fetching projects for tenant:", currentTenant?.id, "role:", currentTenant?.role);
         setLoadingProjects(true);
-        fetch(`${API}/builder/projects`, { headers: buildHeaders(token, currentTenant?.id) })
-            .then(r => r.json()).then(d => setProjects(Array.isArray(d) ? d : []))
+        const headers = buildHeaders(token, currentTenant?.id);
+        console.log("Request headers:", headers);
+        fetch(`${API}/builder/projects`, { headers })
+            .then(async r => {
+                const text = await r.text();
+                console.log("Projects response status:", r.status, "body:", text);
+                if (!r.ok) {
+                    try {
+                        const err = JSON.parse(text);
+                        console.error("Failed to fetch projects:", r.status, err);
+                    } catch {
+                        console.error("Failed to fetch projects:", r.status, text);
+                    }
+                    setProjects([]);
+                    return;
+                }
+                try {
+                    const d = JSON.parse(text);
+                    console.log("Parsed projects:", d);
+                    setProjects(Array.isArray(d) ? d : []);
+                } catch (e) {
+                    console.error("Failed to parse projects response:", e);
+                    setProjects([]);
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching projects:", err);
+                setProjects([]);
+            })
             .finally(() => setLoadingProjects(false));
-    }, [token]);
+    }, [token, currentTenant?.id]);
 
-    function handleTemplate(t: Template) { loadTemplate(t); router.push("/builder/editor"); }
+    function handleTemplate(t: Template) { 
+        // Create a new project from template and save to database
+        if (!canEdit) {
+            alert("Editor role required to create projects");
+            return;
+        }
+        
+        (async () => {
+            try {
+                const res = await fetch(`${API}/builder/projects`, {
+                    method: "POST",
+                    headers: buildHeaders(token!, currentTenant?.id, true),
+                    body: JSON.stringify({ 
+                        name: t.name, 
+                        description: `Based on ${t.name} template`,
+                        min_role: myRole
+                    }),
+                });
+                
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    alert("Failed to create project: " + (err.error || "Unknown error"));
+                    return;
+                }
+                
+                const projectData = await res.json();
+                
+                // Create a home page from template
+                try {
+                    await fetch(`${API}/builder/pages`, {
+                        method: "POST",
+                        headers: buildHeaders(token!, currentTenant?.id, true),
+                        body: JSON.stringify({
+                            project_id: projectData.id,
+                            name: "Home",
+                            route: "/",
+                            elements: t.elements || [],
+                            min_role: myRole
+                        }),
+                    });
+                } catch (pageErr) {
+                    console.error("Error creating page from template:", pageErr);
+                }
+                
+                loadTemplate(t);
+                router.push("/builder/editor");
+            } catch (err) {
+                console.error("Error creating project from template:", err);
+                alert("Error creating project");
+            }
+        })();
+    }
 
     if (activeProject) {
         return (

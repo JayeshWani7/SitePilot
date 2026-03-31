@@ -11,7 +11,7 @@
     "dev:web": "npm --prefix frontend run dev:3001",
     "start:web": "npm --prefix frontend run start:3001",
     "dev:all": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
-    "build": "npm --prefix frontend run build",
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
     "check:db": "node src/check-db.js",
     "setup:db": "node src/setup-db.js",
     "dev:builder": "npm --prefix builder run dev"

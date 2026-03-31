@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, user, loading: authLoading } = useAuth();
@@ -19,7 +19,7 @@ export default function LoginPage() {
     if (!authLoading && user) {
       router.replace(searchParams.get("redirect") || "/dashboard");
     }
-  }, [authLoading, user]);
+  }, [authLoading, user, router, searchParams]);
 
   if (authLoading || user) return null;
 
@@ -142,5 +142,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh" }} />}>
+      <LoginContent />
+    </Suspense>
   );
 }

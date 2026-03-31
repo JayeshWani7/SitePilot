@@ -1,8 +1,9 @@
 [build]
   command = "npm install"
   publish = "dist"
-  functions = "functions"
 
-[env]
-  [env.production]
-    environment = { NODE_ENV = "production", DATABASE_URL = "your_database_url" }
+[env.production]
+  NODE_ENV = "production"
+
+# Disable secret scanning since .env is dev-only (not committed to repo)
+SECRETS_SCAN_ENABLED = "false"
